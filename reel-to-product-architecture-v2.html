@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reel → Product · Technical Architecture &amp; API Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#101828;
+  --ink-soft:#475467;
+  --paper:#F6F8FB;
+  --card:#FFFFFF;
+  --line:#E4E9F0;
+  --fk:#2874F0;
+  --amz:#E47911;
+  --meta1:#DD2A7B; --meta2:#8134AF;
+  --money:#0E9F6E;
+  --code-bg:#0F172A;
+  --code-tx:#DCE7F5;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  background:var(--paper);color:var(--ink);
+  font-size:15.5px;line-height:1.65;
+}
+.wrap{display:grid;grid-template-columns:250px 1fr;max-width:1180px;margin:0 auto}
+
+/* ---------- Pipeline rail (signature nav) ---------- */
+.rail{position:sticky;top:0;align-self:start;height:100vh;padding:44px 18px 30px 26px;border-right:1px solid var(--line)}
+.rail .logo{font-family:'Space Grotesk';font-weight:700;font-size:17px;letter-spacing:-.02em;margin-bottom:34px}
+.rail .logo span{color:var(--fk)}
+.pipe{position:relative;padding-left:20px}
+.pipe::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:2px;
+  background:linear-gradient(180deg,var(--meta1),var(--meta2) 18%,var(--fk) 55%,var(--money))}
+.pipe a{display:block;position:relative;text-decoration:none;color:var(--ink-soft);
+  font-size:13px;font-weight:500;padding:9px 0}
+.pipe a b{display:block;color:var(--ink);font-weight:600;font-size:13.5px}
+.pipe a::before{content:"";position:absolute;left:-19px;top:15px;width:10px;height:10px;border-radius:50%;
+  background:var(--paper);border:2.5px solid var(--ink)}
+.pipe a:hover b{color:var(--fk)}
+.pipe a:focus-visible{outline:2px solid var(--fk);outline-offset:2px;border-radius:6px}
+
+/* ---------- Content ---------- */
+main{padding:0 8px 90px 46px;min-width:0}
+.hero{padding:52px 0 18px}
+.eyebrow{font-family:'IBM Plex Mono';font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+h1{font-family:'Space Grotesk';font-weight:700;font-size:clamp(30px,4.6vw,44px);
+  letter-spacing:-.03em;line-height:1.08;margin:10px 0 16px}
+h1 .grad{background:linear-gradient(90deg,var(--meta1),var(--meta2));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 .fkc{color:var(--fk)} h1 .amc{color:var(--amz)}
+.lede{max-width:640px;color:var(--ink-soft);font-size:16.5px}
+
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:28px 0 8px;font-family:'IBM Plex Mono';font-size:12.5px}
+.flow .node{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-weight:500;white-space:nowrap}
+.flow .node.ig{border-color:#F3C2DA;background:#FDF2F8}
+.flow .node.ai{border-color:#D8CBF2;background:#F7F3FE}
+.flow .node.fkn{border-color:#BFD7FB;background:#EFF5FE}
+.flow .node.mn{border-color:#BFE8D8;background:#ECFDF5}
+.flow .arrow{color:#98A2B3}
+
+section{padding-top:46px}
+.stage-head{display:flex;align-items:baseline;gap:14px;border-top:1px solid var(--line);padding-top:30px}
+.stage-num{font-family:'IBM Plex Mono';font-size:12px;font-weight:500;color:#fff;background:var(--ink);
+  border-radius:8px;padding:4px 9px;letter-spacing:.08em;white-space:nowrap}
+h2{font-family:'Space Grotesk';font-weight:700;font-size:26px;letter-spacing:-.02em}
+h3{font-family:'Space Grotesk';font-weight:600;font-size:18px;margin:28px 0 8px;letter-spacing:-.01em}
+p{margin:10px 0;max-width:72ch}
+p.mut{color:var(--ink-soft)}
+strong{font-weight:600}
+ul,ol{margin:10px 0 10px 22px;max-width:70ch}
+li{margin:6px 0}
+a{color:var(--fk)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;margin:16px 0;font-size:14px}
+table{display:block;overflow-x:auto;white-space:normal}
+th{font-family:'IBM Plex Mono';font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;
+  text-align:left;color:var(--ink-soft);background:#F2F5FA;padding:10px 14px;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;min-width:120px}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:600;white-space:nowrap}
+tr.v-amz td:first-child{box-shadow:inset 3px 0 0 var(--amz)}
+tr.v-fk td:first-child{box-shadow:inset 3px 0 0 var(--fk)}
+tr.v-goog td:first-child{box-shadow:inset 3px 0 0 #34A853}
+tr.v-meta td:first-child{box-shadow:inset 3px 0 0 var(--meta1)}
+tr.v-ai td:first-child{box-shadow:inset 3px 0 0 var(--meta2)}
+tr.v-mn td:first-child{box-shadow:inset 3px 0 0 var(--money)}
+pre{background:var(--code-bg);color:var(--code-tx);border-radius:var(--radius);
+  padding:16px 18px;overflow-x:auto;font-family:'IBM Plex Mono';font-size:13px;line-height:1.55;margin:14px 0}
+code{font-family:'IBM Plex Mono';font-size:.92em;background:#EAEFF6;border-radius:5px;padding:1.5px 6px}
+pre code{background:none;padding:0}
+.cm{color:#7C93B5}
+.ck{color:#7DD3FC}
+.cs{color:#FDBA74}
+
+.note,.warn,.win{border-radius:var(--radius);padding:14px 16px;margin:14px 0;font-size:14.5px;border:1px solid}
+.note{background:#EFF5FE;border-color:#C6DAFB}
+.warn{background:#FEF6EC;border-color:#F5D9AE}
+.win{background:#ECFDF5;border-color:#BFE8D8}
+.note b,.warn b,.win b{display:block;font-family:'IBM Plex Mono';font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.note b{color:var(--fk)} .warn b{color:var(--amz)} .win b{color:var(--money)}
+
+.pill{display:inline-block;font-family:'IBM Plex Mono';font-size:11px;letter-spacing:.06em;
+  border-radius:999px;padding:2.5px 9px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);margin-left:6px;vertical-align:2px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:14px;margin:10px 0}
+.kv dt{font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-soft);padding-top:2px}
+.kv dd{margin:0}
+
+@media (max-width:920px){
+  .wrap{grid-template-columns:1fr}
+  .rail{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line);padding:26px 20px 6px}
+  .pipe{display:flex;flex-wrap:wrap;gap:2px 22px;padding-left:14px}
+  .pipe::before{top:6px;bottom:6px}
+  main{padding:0 20px 70px}
+  .kv{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="rail" aria-label="Pipeline navigation">
+  <div class="logo">Reel<span>→</span>Product</div>
+  <div class="pipe">
+    <a href="#s0"><b>System overview</b>the whole pipeline</a>
+    <a href="#s1"><b>Stage 1 · Ingest</b>get the Reel media</a>
+    <a href="#s2"><b>Stage 2 · Extract</b>AI product details</a>
+    <a href="#s3"><b>Stage 3 · Match</b>Amazon · Flipkart</a>
+    <a href="#s4"><b>Stage 4 · Rank</b>better alternatives</a>
+    <a href="#s5"><b>Stage 5 · Monetize</b>affiliate links</a>
+    <a href="#s6"><b>Stage 6 · Backend</b>infra, cache, cost</a>
+    <a href="#s7"><b>API master table</b>who does what</a>
+    <a href="#s8"><b>Compliance</b>ToS &amp; limits</a>
+    <a href="#s9"><b>Build order</b>4-week MVP</a>
+  </div>
+</nav>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Technical architecture · v1.1 · July 2026</div>
+  <h1>From an <span class="grad">Instagram Reel</span> to the same product on <span class="amc">Amazon</span> &amp; <span class="fkc">Flipkart</span> — with better picks.</h1>
+  <p class="lede">A stage-by-stage engineering guide: exactly which third-party API to use for each job, what it costs, the request/response shapes, the ranking logic, and the affiliate layer that pays for all of it.</p>
+  <div class="flow" aria-hidden="true">
+    <span class="node ig">Share sheet → Reel URL</span><span class="arrow">▸</span>
+    <span class="node ig">oEmbed / scraper → image</span><span class="arrow">▸</span>
+    <span class="node ai">Vision LLM → JSON</span><span class="arrow">▸</span>
+    <span class="node fkn">Lens + PA-API + Cuelinks</span><span class="arrow">▸</span>
+    <span class="node mn">Rank → affiliate card</span>
+  </div>
+</header>
+
+<!-- ============ STAGE 0 ============ -->
+<section id="s0">
+  <div class="stage-head"><span class="stage-num">S0</span><h2>System overview</h2></div>
+  <p>The product: a user watches a Reel, taps <strong>Share → your app</strong>, and 3–8 seconds later sees a card with (a) the exact product on Amazon.in and Flipkart, (b) 2–3 better-rated or cheaper alternatives, and (c) prices — every link affiliate-wrapped. Architecturally it is a five-hop pipeline, and each hop maps to one external service:</p>
+  <table>
+    <tr><th>Hop</th><th>Job</th><th>Primary service</th><th>Fallback</th></tr>
+    <tr class="v-meta"><td>Ingest</td><td>Reel URL → public image + caption</td><td>Meta oEmbed API</td><td>Apify / ScrapingBee scraper; user screenshot</td></tr>
+    <tr class="v-ai"><td>Extract</td><td>Image + caption → structured product JSON</td><td>Gemini 2.5 Flash (vision)</td><td>GPT-4o-mini / Claude Haiku</td></tr>
+    <tr class="v-goog"><td>Match</td><td>Find the same product across stores</td><td>SerpApi · Google Lens + Google Shopping (gl=in)</td><td>Amazon PA-API 5.0 · Rainforest API</td></tr>
+    <tr class="v-fk"><td>Flipkart layer</td><td>Flipkart catalog + links</td><td>Cuelinks (campaign + link API)</td><td>EarnKaro converter</td></tr>
+    <tr class="v-mn"><td>Monetize</td><td>Every outbound URL → commission URL</td><td>Cuelinks deep-link API</td><td>Amazon Associates tag; EarnKaro</td></tr>
+  </table>
+  <div class="note"><b>Design rule</b>Never let the app depend on a single vendor per hop. Every hop above has a documented fallback, because Instagram scraping breaks, PA-API accounts get suspended, and affiliate networks pause campaigns.</div>
+</section>
+
+<!-- ============ STAGE 1 ============ -->
+<section id="s1">
+  <div class="stage-head"><span class="stage-num">S1</span><h2>Ingest — receive the link, get the media</h2></div>
+
+  <h3>1.1 Receive the share</h3>
+  <p>Register your app as a share target so it appears in Instagram's share sheet. You receive plain text containing a URL like <code>https://www.instagram.com/reel/DKx.../?igsh=...</code></p>
+  <ul>
+    <li><strong>Android:</strong> an <code>intent-filter</code> for <code>ACTION_SEND</code> with <code>text/plain</code> (and <code>image/*</code> to accept screenshots).</li>
+    <li><strong>iOS:</strong> a Share Extension target; also register <code>public.image</code> so screenshots work.</li>
+    <li><strong>Normalize:</strong> strip query params, resolve <code>/share/</code> short links via one HEAD request, extract the shortcode (<code>DKx...</code>). The shortcode is your cache key for the whole pipeline.</li>
+  </ul>
+
+  <h3>1.2 Get image + caption — three routes, in order</h3>
+  <table>
+    <tr><th>Route</th><th>API / method</th><th>What you get</th><th>Cost</th><th>Risk</th></tr>
+    <tr class="v-meta"><td>A · Official</td><td>Meta <strong>oEmbed API</strong> — <code>graph.facebook.com/v23.0/instagram_oembed?url=...</code></td><td><code>thumbnail_url</code>, author, embed HTML for public posts/reels</td><td>Free (app token)</td><td>Requires a Meta app + oEmbed App-Review approval; thumbnail only, no video file</td></tr>
+    <tr class="v-meta"><td>B · Scraper</td><td><strong>Apify</strong> Instagram Scraper actor, <strong>ScrapingBee</strong>, or <strong>Bright Data</strong> — fetch the post page, read <code>og:image</code> / <code>og:description</code></td><td>Full-res image, caption, sometimes video URL</td><td>≈ $0.5–2 per 1,000 posts</td><td>Against IG ToS; blocks; use residential proxies; keep server-side only</td></tr>
+    <tr class="v-meta"><td>C · Screenshot</td><td>User shares a screenshot instead of a link</td><td>Pixel-perfect frame incl. Stories</td><td>Free</td><td>None — this is your ToS-clean guaranteed path</td></tr>
+  </table>
+  <p class="mut">Ship A + C on day one; add B behind a feature flag. If the post is private or deleted, fall back to C with a friendly prompt ("share a screenshot instead").</p>
+
+  <h3>1.3 Reels are videos — take frames</h3>
+  <p>The oEmbed thumbnail is usually the product-bearing frame. When it isn't (talking-head intros), and you have the video file from route B, sample keyframes:</p>
+<pre><code>ffmpeg -i reel.mp4 -vf "select='gt(scene,0.3)',scale=768:-1" \
+       -frames:v 5 -vsync vfr frame_%02d.jpg   <span class="cm"># 3–5 scene-change frames, resized for the LLM</span></code></pre>
+</section>
+
+<!-- ============ STAGE 2 ============ -->
+<section id="s2">
+  <div class="stage-head"><span class="stage-num">S2</span><h2>Extract — one vision-LLM call → product JSON</h2></div>
+  <p>Do not build a CV pipeline at MVP. One multimodal model call handles detection, brand OCR from overlays, and attribute extraction. Force JSON output; temperature 0.</p>
+
+  <table>
+    <tr><th>Model</th><th>Vendor API</th><th>Approx. cost / 1,000 scans*</th><th>Why / when</th></tr>
+    <tr class="v-ai"><td>Gemini 2.5 Flash</td><td>Google AI Studio API</td><td>≈ $1–3</td><td>Default: cheapest strong vision, big free tier for dev, JSON mode</td></tr>
+    <tr class="v-ai"><td>GPT-4o-mini</td><td>OpenAI API</td><td>≈ $2–5</td><td>Fallback vendor; near-identical prompt works</td></tr>
+    <tr class="v-ai"><td>Claude Haiku 4.5</td><td>Anthropic API</td><td>≈ $2–6</td><td>Strong OCR of stylized overlay text; second fallback</td></tr>
+  </table>
+  <p class="mut">*1 image + short caption in, ~200 tokens out. Verify current pricing pages before launch; vision token pricing changes quarterly.</p>
+
+  <h3>2.1 The extraction contract</h3>
+<pre><code><span class="cm"># System prompt (abridged)</span>
+You identify the SINGLE most prominent purchasable product.
+Return ONLY valid JSON matching the schema. Use null when unsure.
+
+<span class="cm"># Output schema</span>
+{
+  <span class="ck">"category"</span>:      <span class="cs">"crossbody bag"</span>,
+  <span class="ck">"brand_guess"</span>:   <span class="cs">"Caprese"</span>,          <span class="cm">// from logo/overlay/caption, else null</span>
+  <span class="ck">"product_name"</span>:  <span class="cs">"mini quilted crossbody bag"</span>,
+  <span class="ck">"attributes"</span>:    [<span class="cs">"black"</span>,<span class="cs">"faux leather"</span>,<span class="cs">"gold chain strap"</span>],
+  <span class="ck">"gender_or_use"</span>: <span class="cs">"women"</span>,
+  <span class="ck">"price_band_inr"</span>:<span class="cs">"800-2500"</span>,
+  <span class="ck">"search_queries"</span>:[<span class="cs">"black quilted mini crossbody bag chain strap"</span>,
+                    <span class="cs">"caprese sling bag black"</span>,
+                    <span class="cs">"quilted sling bag women"</span>]
+}</code></pre>
+  <div class="warn"><b>Guardrails</b>Reject frames where the model returns <code>category:null</code> or confidence is low — ask the user to tap the product in a frame picker instead of guessing. Wrong extraction poisons every later stage.</div>
+</section>
+
+<!-- ============ STAGE 3 ============ -->
+<section id="s3">
+  <div class="stage-head"><span class="stage-num">S3</span><h2>Match — same product on Amazon &amp; Flipkart</h2></div>
+  <p>Two engines run in parallel: a <strong>visual</strong> engine (image in → matching listings out) and a <strong>text</strong> engine (extracted queries → store search). Merge their results before ranking.</p>
+
+  <h3>3.1 Visual engine — Google Lens via SerpApi <span class="pill">fastest path</span></h3>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Find visually identical / near-identical listings across all retailers in one call</dd>
+    <dt>Endpoint</dt><dd><code>GET serpapi.com/search?engine=google_lens&amp;url=&lt;image_url&gt;&amp;country=in</code></dd>
+    <dt>Returns</dt><dd><code>visual_matches[]</code> with title, link, source (amazon.in / flipkart.com / myntra.com...), price, thumbnail</dd>
+    <dt>Cost</dt><dd>Plan-based, roughly $0.005–0.01 per search at volume; SearchApi.io is an equivalent alternative vendor</dd>
+    <dt>Note</dt><dd>Pass a <em>cropped</em> product image (from Stage 2's frame) — full lifestyle frames dilute matches</dd>
+  </dl>
+
+  <h3>3.2 Text engine per store</h3>
+  <table>
+    <tr><th>Store</th><th>API</th><th>Purpose</th><th>Access reality</th></tr>
+    <tr class="v-amz"><td>Amazon.in</td><td><strong>Product Advertising API 5.0</strong> · <code>SearchItems</code> / <code>GetItems</code></td><td>Official search, title, price, rating, review count, ASIN, affiliate-ready URLs</td><td>Needs an Amazon Associates account; access is revoked without ~3 qualifying sales in 180 days — bootstrap with Rainforest first</td></tr>
+    <tr class="v-amz"><td>Amazon.in (unofficial)</td><td><strong>Rainforest API</strong></td><td>Amazon search + product data without PA-API approval</td><td>Paid (from ~$0.005–0.02/request); use until Associates is unlocked</td></tr>
+    <tr class="v-fk"><td>Flipkart</td><td><strong>Cuelinks</strong> Flipkart campaign + product feeds; <strong>Flipkart Affiliate API</strong> exists but only for already-registered affiliates</td><td>Search/catalog + commissionable links</td><td>Flipkart stopped direct public affiliate sign-ups for new small affiliates — join through Cuelinks/EarnKaro instead</td></tr>
+    <tr class="v-goog"><td>All stores</td><td><strong>SerpApi Google Shopping</strong> · <code>engine=google_shopping&amp;gl=in</code></td><td>Cross-store price comparison incl. Amazon, Flipkart, Myntra, Ajio</td><td>Same SerpApi account as Lens — one vendor, two engines</td></tr>
+  </table>
+
+  <div class="note"><b>Merge logic</b>De-duplicate by normalized title + price proximity. A listing that appears in BOTH the Lens results and a store search is almost certainly the exact product — pin it to the top as "Exact match".</div>
+</section>
+
+<!-- ============ STAGE 4 ============ -->
+<section id="s4">
+  <div class="stage-head"><span class="stage-num">S4</span><h2>Rank — exact match first, then genuinely better picks</h2></div>
+  <h3>4.1 Deterministic score (do NOT let the LLM invent numbers)</h3>
+<pre><code>score = 0.35 * rating_norm        <span class="cm"># rating / 5</span>
+      + 0.25 * log10(reviews+1)/5 <span class="cm"># social proof, dampened</span>
+      + 0.25 * price_fit          <span class="cm"># 1 - |price - band_mid| / band_mid, clamped 0..1</span>
+      + 0.15 * attribute_overlap  <span class="cm"># matched attrs / total attrs</span></code></pre>
+  <h3>4.2 LLM re-rank (one cheap text call)</h3>
+  <p>Send the top 10 scored listings (title, price, rating, reviews) back to Gemini Flash: <em>"Pick the exact match if present, then the 3 best alternatives. For each alternative, one 8-word reason (better rated / cheaper / same specs)."</em> The model writes the human-readable "why", never the ranking numbers.</p>
+  <div class="win"><b>Card layout</b>1× Exact match (Amazon + Flipkart buttons side by side, prices visible) · 3× "Better picks" with the one-line reason · 1× "See 20 more" long-tail link. That card is the entire product.</div>
+</section>
+
+<!-- ============ STAGE 5 ============ -->
+<section id="s5">
+  <div class="stage-head"><span class="stage-num">S5</span><h2>Monetize — every link earns</h2></div>
+  <table>
+    <tr><th>Network</th><th>API / mechanism</th><th>Covers</th><th>Notes</th></tr>
+    <tr class="v-mn"><td>Cuelinks</td><td>Deep-link API: <code>POST</code> any product URL → commissioned URL</td><td>Flipkart, Myntra, Ajio, Tata CliQ + 1,000+ Indian programs</td><td>One integration monetizes almost every non-Amazon link; free to join</td></tr>
+    <tr class="v-mn"><td>EarnKaro</td><td>Profit-link converter (manual/API)</td><td>Flipkart at up to ~12% commission, 300+ programs</td><td>₹10 minimum withdrawal; good secondary network</td></tr>
+    <tr class="v-amz"><td>Amazon Associates</td><td>Append your tag: <code>?tag=yourid-21</code> (PA-API responses include it)</td><td>Amazon.in only</td><td>Keep the account alive: 3 sales in first 180 days</td></tr>
+  </table>
+  <p class="mut">Rule: the backend owns link-wrapping. The app never renders a raw retailer URL, so switching networks later is a server-side change only.</p>
+</section>
+
+<!-- ============ STAGE 6 ============ -->
+<section id="s6">
+  <div class="stage-head"><span class="stage-num">S6</span><h2>Backend — queue, cache, and the cost math</h2></div>
+  <h3>6.1 Shape</h3>
+  <ul>
+    <li><strong>API server:</strong> FastAPI (Python) or Hono/Express (Node) on Railway / Fly.io / Cloudflare Workers.</li>
+    <li><strong>Worker queue:</strong> the scan is async (3–8 s). Enqueue on share, push result via WebSocket/poll. Celery + Redis or BullMQ.</li>
+    <li><strong>Postgres:</strong> <code>posts(shortcode, media_url, caption, extract_json)</code> · <code>matches(post_id, store, url, price, rating, reviews, score)</code> · <code>clicks(match_id, user_id, ts)</code> for affiliate attribution.</li>
+    <li><strong>Redis:</strong> cache the <em>finished card</em> keyed by shortcode, TTL 24 h (also keeps you inside Amazon's data-freshness rules).</li>
+  </ul>
+  <div class="win"><b>The economics of virality</b>Viral reels are shared by thousands of users. With shortcode-level caching, user #2 to #10,000 of the same reel costs ₹0 in API spend and gets an instant result. Your marginal cost concentrates only on fresh content.</div>
+  <h3>6.2 Cost per 1,000 <em>uncached</em> scans (order of magnitude)</h3>
+  <table>
+    <tr><th>Item</th><th>Est. cost</th></tr>
+    <tr><td>Ingest (oEmbed free / scraper mix)</td><td>$0.5–1.5</td></tr>
+    <tr><td>Gemini Flash extraction</td><td>$1–3</td></tr>
+    <tr><td>SerpApi Lens + Shopping (2 calls)</td><td>$10–20</td></tr>
+    <tr><td>PA-API / Rainforest</td><td>$0–10</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>≈ $12–35 per 1,000 new reels</strong> — one affiliate order can repay hundreds of scans</td></tr>
+  </table>
+</section>
+
+<!-- ============ STAGE 7 ============ -->
+<section id="s7">
+  <div class="stage-head"><span class="stage-num">S7</span><h2>API master table — one line each</h2></div>
+  <table>
+    <tr><th>API</th><th>Stage</th><th>Exact purpose</th><th>Pricing model</th></tr>
+    <tr class="v-meta"><td>Meta oEmbed</td><td>S1</td><td>Legit thumbnail + caption for public IG posts</td><td>Free, app review required</td></tr>
+    <tr class="v-meta"><td>Apify / ScrapingBee / Bright Data</td><td>S1</td><td>Fallback page fetch → og:image, video URL</td><td>~$0.5–2 / 1k</td></tr>
+    <tr class="v-ai"><td>Gemini 2.5 Flash</td><td>S2, S4</td><td>Vision → product JSON; re-rank copywriting</td><td>Per-token, ~$1–3 / 1k scans</td></tr>
+    <tr class="v-goog"><td>SerpApi Google Lens</td><td>S3</td><td>Image → visually identical listings across stores</td><td>Per-search plan</td></tr>
+    <tr class="v-goog"><td>SerpApi Google Shopping</td><td>S3</td><td>Text query → cross-store prices (gl=in)</td><td>Same plan</td></tr>
+    <tr class="v-amz"><td>Amazon PA-API 5.0</td><td>S3, S5</td><td>Official Amazon search + affiliate URLs</td><td>Free with Associates quota</td></tr>
+    <tr class="v-amz"><td>Rainforest API</td><td>S3</td><td>Amazon data before PA-API approval</td><td>Per-request</td></tr>
+    <tr class="v-fk"><td>Cuelinks</td><td>S3, S5</td><td>Flipkart + 1,000 stores: catalog feeds &amp; deep-link conversion</td><td>Free, rev-share on commission</td></tr>
+    <tr class="v-mn"><td>EarnKaro</td><td>S5</td><td>Secondary Flipkart/Myntra link converter (up to ~12%)</td><td>Free, rev-share</td></tr>
+  </table>
+</section>
+
+<!-- ============ STAGE 8 ============ -->
+<section id="s8">
+  <div class="stage-head"><span class="stage-num">S8</span><h2>Compliance &amp; failure modes</h2></div>
+  <ul>
+    <li><strong>Instagram ToS:</strong> scraping violates it. Keep route B server-side, low-volume, and lead with oEmbed + screenshots. Never ask users for their IG password.</li>
+    <li><strong>Meta app review:</strong> oEmbed needs an approved use case — describe it as "preview of user-shared public links".</li>
+    <li><strong>Amazon rules:</strong> price/data display must be fresh (re-query beyond 24 h), and the Associates account needs early sales — seed it with friends' purchases in week one.</li>
+    <li><strong>Affiliate disclosure:</strong> show "links may earn us a commission" in the app (required by Amazon and Indian ASCI guidelines).</li>
+    <li><strong>Privacy:</strong> you process only public posts and user-submitted screenshots; delete raw media after extraction; state it plainly — privacy is a selling point.</li>
+    <li><strong>Failure UX:</strong> private post → screenshot prompt · no match → show category search on both stores anyway · API down → cached similar products.</li>
+  </ul>
+</section>
+
+<!-- ============ STAGE 9 ============ -->
+<section id="s9">
+  <div class="stage-head"><span class="stage-num">S9</span><h2>4-week MVP build order</h2></div>
+  <ol>
+    <li><strong>Week 1 — the spine:</strong> share extension → FastAPI endpoint → Gemini extraction → SerpApi Lens → raw JSON list on screen. No design, no cache.</li>
+    <li><strong>Week 2 — the card:</strong> merge + score + LLM re-rank; Amazon (Rainforest) + Flipkart (Cuelinks) buttons; Redis shortcode cache.</li>
+    <li><strong>Week 3 — money &amp; polish:</strong> Cuelinks/EarnKaro wrapping, click logging, scan animation, screenshot fallback, empty states.</li>
+    <li><strong>Week 4 — distribution:</strong> Meta oEmbed review submission, Associates signup, and 10 demo TikToks/Reels of the share-to-card magic moment — the app IS the content.</li>
+  </ol>
+  <p class="mut">Everything above is swappable by design: if one vendor breaks, its stage has a named replacement. Ship the spine first; optimize vendors with real traffic data.</p>
+</section>
+
+</main>
+</div>
+</body>
+</html>

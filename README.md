@@ -54,3 +54,26 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+Ai prompt -
+Read AGENTS.md and all documentation related to this task.
+
+Task:
+[Write the feature or bug here]
+
+Before editing:
+
+1. Explain the current flow.
+2. Identify related files.
+3. Identify possible side effects.
+4. Create a focused implementation plan.
+
+Then implement the task without changing unrelated code.
+
+After implementation:
+
+1. Test the main flow and edge cases.
+2. Update current progress.
+3. Update known issues.
+4. Update decisions if architecture changed.
+5. Explain files changed, tests performed and remaining risks.
