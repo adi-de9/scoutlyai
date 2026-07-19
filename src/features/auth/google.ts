@@ -1,5 +1,5 @@
-import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { authCallbackUrl, completeAuthCallback } from "./callback";
 import { supabase, supabaseConfigurationError } from "./supabase";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -7,7 +7,7 @@ WebBrowser.maybeCompleteAuthSession();
 export async function signInWithGoogle(): Promise<string | null> {
   if (!supabase) return supabaseConfigurationError;
 
-  const redirectTo = Linking.createURL("auth/callback");
+  const redirectTo = authCallbackUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo, skipBrowserRedirect: true },
@@ -17,9 +17,10 @@ export async function signInWithGoogle(): Promise<string | null> {
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== "success") {
-    return result.type === "cancel" ? "Google sign-in was cancelled." : "Google sign-in did not finish.";
+    return result.type === "cancel"
+      ? "Google sign-in was cancelled."
+      : "Google sign-in did not finish.";
   }
 
-  const { error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
-  return sessionError?.message ?? null;
+  return completeAuthCallback(result.url);
 }

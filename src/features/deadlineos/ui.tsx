@@ -1,12 +1,12 @@
 import Feather from "@expo/vector-icons/Feather";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
-import type { Priority } from "./store";
 
 export const C = {
   bg: "#FCFAF4",
@@ -86,14 +86,26 @@ export function Pill({
   title,
   active,
   onPress,
+  activeColor = C.text,
 }: {
   title: string;
   active?: boolean;
   onPress?: () => void;
+  activeColor?: string;
 }) {
   const content = <Text style={[styles.pillText, active && { color: C.bg }]}>{title}</Text>;
   return onPress ? (
-    <Pressable onPress={onPress} style={[styles.pill, active && styles.pillActive]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(active) }}
+      hitSlop={4}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.pill,
+        active && [styles.pillActive, { backgroundColor: activeColor, borderColor: activeColor }],
+        pressed && styles.pillPressed,
+      ]}
+    >
       {content}
     </Pressable>
   ) : (
@@ -177,7 +189,90 @@ const nav = [
   { href: "/calendar", icon: "calendar", label: "Calendar" },
   { href: "/insights", icon: "trending-up", label: "Insights" },
 ] as const;
-const NAV_BAR_HEIGHT = 72;
+const NAV_TRAY_HEIGHT = 68;
+const NAV_FLOATING_OFFSET = 28;
+const NAV_FAB_SIZE = 68;
+const NAV_DOCK_HEIGHT = NAV_TRAY_HEIGHT + NAV_FLOATING_OFFSET;
+
+type NavigationItem = (typeof nav)[number];
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function AnimatedNavigationItem({
+  item,
+  active,
+  onPress,
+}: {
+  item: NavigationItem;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const lift = useSharedValue(active ? -3 : 0);
+
+  useEffect(() => {
+    lift.value = withSpring(active ? -3 : 0, { damping: 15, stiffness: 190 });
+  }, [active, lift]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: lift.value }, { scale: scale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      hitSlop={5}
+      onPress={onPress}
+      onPressIn={() => {
+        scale.value = withSpring(0.91, { damping: 15, stiffness: 260 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 15, stiffness: 220 });
+      }}
+      style={[styles.navItem, animatedStyle]}
+    >
+      <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
+        <Feather name={item.icon} size={20} color={active ? C.indigo : C.sub} />
+      </View>
+      <Text style={[styles.navText, active && { color: C.indigo }]}>{item.label}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function AnimatedAddButton({ active, onPress }: { active: boolean; onPress: () => void }) {
+  const scale = useSharedValue(active ? 1.05 : 1);
+  const lift = useSharedValue(active ? -2 : 0);
+
+  useEffect(() => {
+    scale.value = withSpring(active ? 1.05 : 1, { damping: 14, stiffness: 190 });
+    lift.value = withSpring(active ? -2 : 0, { damping: 14, stiffness: 190 });
+  }, [active, lift, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: lift.value }, { scale: scale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel="Add notice"
+      hitSlop={8}
+      onPress={onPress}
+      onPressIn={() => {
+        scale.value = withSpring(0.93, { damping: 15, stiffness: 280 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(active ? 1.05 : 1, { damping: 14, stiffness: 190 });
+      }}
+      style={[styles.navAddButton, animatedStyle]}
+    >
+      <View style={[styles.navFab, active && styles.navFabActive]}>
+        <Feather name="plus" size={29} color="#FFFDF8" />
+      </View>
+    </AnimatedPressable>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -189,7 +284,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: NAV_BAR_HEIGHT + insets.bottom + 32 },
+          { paddingBottom: NAV_DOCK_HEIGHT + insets.bottom + 34 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -197,45 +292,33 @@ export function AppShell({ children }: { children: ReactNode }) {
       </ScrollView>
       <View
         style={[
-          styles.nav,
-          { height: NAV_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
+          styles.navDock,
+          { height: NAV_DOCK_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
         ]}
       >
-        <View style={styles.navRow}>
-          {nav.map((item) => {
-            const active = pathname === item.href;
-
-            if (item.primary) {
-              return (
-                <Pressable
-                  key={item.href}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel="Add notice"
-                  onPress={() => router.replace(item.href)}
-                  style={styles.navAddItem}
-                >
-                  <View style={styles.navFab}>
-                    <Feather name={item.icon} size={27} color="#FFFDF8" />
-                  </View>
-                  <Text style={[styles.navText, active && { color: C.indigo }]}>{item.label}</Text>
-                </Pressable>
-              );
-            }
-
-            return (
-              <Pressable
-                key={item.href}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                onPress={() => router.replace(item.href)}
-                style={styles.navItem}
-              >
-                <Feather name={item.icon} size={21} color={active ? C.indigo : C.sub} />
-                <Text style={[styles.navText, active && { color: C.indigo }]}>{item.label}</Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.navTray}>
+          {nav.slice(0, 2).map((item) => (
+            <AnimatedNavigationItem
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+              onPress={() => router.replace(item.href)}
+            />
+          ))}
+          <View style={styles.navCenterSlot}>
+            <AnimatedAddButton
+              active={pathname === "/add"}
+              onPress={() => router.replace("/add")}
+            />
+          </View>
+          {nav.slice(3).map((item) => (
+            <AnimatedNavigationItem
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+              onPress={() => router.replace(item.href)}
+            />
+          ))}
         </View>
       </View>
     </SafeAreaView>
@@ -321,6 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   pillActive: { backgroundColor: C.text, borderColor: C.text },
+  pillPressed: { opacity: 0.82 },
   pillText: { fontFamily: F.medium, color: C.text, fontSize: 13 },
   risk: {
     alignSelf: "flex-start",
@@ -332,48 +416,72 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   riskText: { fontFamily: F.bold, fontSize: 11, textTransform: "capitalize" },
-  nav: {
+  navDock: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FFFFFDEA",
-    borderTopWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 8,
+    paddingTop: NAV_FLOATING_OFFSET,
+    paddingHorizontal: 12,
+    zIndex: 10,
+    elevation: 10,
   },
-  navRow: {
-    flex: 1,
+  navTray: {
+    height: NAV_TRAY_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#FFFFFDEA",
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 28,
+    shadowColor: C.text,
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
   },
   navItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    height: NAV_BAR_HEIGHT,
-    gap: 5,
+    height: NAV_TRAY_HEIGHT,
+    gap: 3,
   },
-  navAddItem: {
-    flex: 1,
-    height: NAV_BAR_HEIGHT,
+  navIconWrap: {
+    minWidth: 30,
+    minHeight: 28,
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 9,
+    justifyContent: "center",
+    borderRadius: 14,
+  },
+  navIconWrapActive: { backgroundColor: "#F0ECFF" },
+  navCenterSlot: { flex: 1 },
+  navAddButton: {
+    position: "absolute",
+    top: -40,
+    alignSelf: "center",
+    width: NAV_FAB_SIZE,
+    height: NAV_FAB_SIZE,
+    alignItems: "center",
+    zIndex: 2,
+    elevation: 12,
   },
   navFab: {
-    position: "absolute",
-    top: -26,
-    height: 58,
-    width: 58,
-    borderRadius: 29,
+    height: NAV_FAB_SIZE,
+    width: NAV_FAB_SIZE,
+    borderRadius: NAV_FAB_SIZE / 2,
     backgroundColor: C.indigo,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: C.bg,
     shadowColor: C.indigo,
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOpacity: 0.34,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
+    elevation: 12,
   },
+  navFabActive: { backgroundColor: "#5630C9" },
   navText: { fontFamily: F.medium, color: C.sub, fontSize: 10 },
   h1: {
     fontFamily: F.displayBold,

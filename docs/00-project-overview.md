@@ -4,9 +4,9 @@ See also [[01-architecture]], [[03-feature-map]], and [[09-current-progress]].
 
 ## Project Name
 
-`anapp`
+`Deadline OS`
 
-Evidence: `package.json` has `"name": "anapp"` and `app.json` has Expo `name` and `slug` set to `anapp`.
+Evidence: `app.json` has Expo display name `Deadline OS`. The technical npm package name and Expo slug remain `anapp` for compatibility.
 
 ## Main Purpose
 

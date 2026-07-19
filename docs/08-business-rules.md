@@ -18,11 +18,12 @@ No product-specific business rules are implemented yet.
 - Evidence: `src/features/auth/AuthScreen.tsx`.
 - Related files: `src/features/auth/AuthScreen.tsx`.
 
-## Google OAuth Callback
+## Google OAuth And Optional Email Confirmation Callback
 
-- Rule: Google OAuth must return through the app redirect URL before a Supabase session is created.
-- Evidence: `src/features/auth/google.ts` uses `Linking.createURL("auth/callback")` and `exchangeCodeForSession`.
-- Related files: `src/features/auth/google.ts`, `app.json`.
+- Rule: Google OAuth must return through `anapp://auth/callback` before a Supabase session is created. Email confirmation uses that route only when Confirm Email is enabled in Supabase; it is currently disabled for the hackathon flow, so new email/password accounts receive a session immediately.
+- Rule: A valid stored session takes priority over an old or incomplete callback link, so an already signed-in user continues to onboarding or Home.
+- Evidence: `src/features/auth/callback.ts` exchanges provider codes or verifies email tokens.
+- Related files: `src/features/auth/callback.ts`, `src/app/auth/callback.tsx`, `app.json`.
 
 ## Portrait Orientation
 
@@ -41,6 +42,14 @@ No product-specific business rules are implemented yet.
 - Rule: User interface style is automatic.
 - Evidence: `app.json` sets `"userInterfaceStyle": "automatic"`; Android strings include `expo_system_ui_user_interface_style` as `automatic`.
 - Related files: `app.json`, `android/app/src/main/res/values/strings.xml`.
+
+## Hackathon Notice Rules
+
+- Only pasted text, PDF, and screenshot are accepted. PDF/image sources must be allowed MIME types and at most 10 MB.
+- Live failure always offers Retry and a user-selected Demo Mode sample. The demo path is offline and deterministic.
+- Plans build backward from the extracted deadline and use the onboarding planning style. Reminder proposals require approval before local scheduling.
+- Done records completion and cancels scheduled reminders. Later moves a task to tomorrow at the chosen reminder time. Blocked raises deterministic risk and opens the recovery assistant.
+- A share received from another Android app must be one text/URL, PDF, JPG, PNG, or WebP item. Files must be no larger than 10 MB. DeadlineOS shows a review screen and requires confirmation before private analysis.
 
 ## Static Web Output
 

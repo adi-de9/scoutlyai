@@ -50,3 +50,11 @@ No migration files were found.
 ## Entity Relationship Diagram
 
 No ER diagram can be created yet because there are no database entities in the repository.
+
+## Hackathon Schema Prepared
+
+`supabase/migrations/202607190001_deadlineos_hackathon.sql` defines `notices`, `analysis_jobs`, `analyses`, `deadlines`, `tasks`, `reminders`, and `activity_events`. Every row has `user_id`, timestamps, owner-only RLS, and user/job indexes. The private `notice-source` Storage bucket accepts PDF/JPEG/PNG/WebP up to 10 MB under `<user_id>/<notice_id>/...`; no public URL is created. The migration still needs applying to Supabase.
+
+## Hackathon Schema Prepared
+
+`supabase/migrations/202607190001_deadlineos_hackathon.sql` defines `notices`, `analysis_jobs`, `analyses`, `deadlines`, `tasks`, `reminders`, and `activity_events`. Every row has `user_id`, timestamps, owner-only RLS, and user/job indexes. The private `notice-source` Storage bucket accepts PDF/JPEG/PNG/WebP up to 10 MB under `<user_id>/<notice_id>/...`; no public URL is created. The migration still needs applying to Supabase.
