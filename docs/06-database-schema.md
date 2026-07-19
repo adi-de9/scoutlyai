@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Database Schema
 
 See also [[05-data-flow]] and [[14-open-questions]].

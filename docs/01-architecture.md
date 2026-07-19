@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Architecture
 
 See also [[03-feature-map]], [[04-screen-flow]], [[05-data-flow]], and [[12-dependency-map]].

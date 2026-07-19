@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Folder Map
 
 See also [[11-important-files]] and [[12-dependency-map]].

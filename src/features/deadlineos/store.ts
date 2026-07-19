@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { requestNotificationPermissionsAsync, rescheduleAllNotifications } from "./notifications";
 
 export type Priority = "low" | "medium" | "high";
 export type TaskStatus = "pending" | "done" | "blocked" | "skipped";
@@ -213,6 +214,8 @@ type DeadlineState = {
   updateTask: (taskId: string, patch: Partial<Task>) => void;
   seedDemo: () => void;
   reset: () => void;
+  addNoticeFromFile: (uri: string, mimeType: string, filename: string) => string;
+  addNoticeFromTextAsync: (rawText: string, sourceType: string) => string;
 };
 
 export const useDeadlineStore = create<DeadlineState>()(
@@ -224,7 +227,15 @@ export const useDeadlineStore = create<DeadlineState>()(
       analyses: {},
       deadlines: [],
       tasks: [],
-      setProfile: (patch) => set((state) => ({ profile: { ...state.profile, ...patch } })),
+      setProfile: (patch) => set((state) => {
+        const newProfile = { ...state.profile, ...patch };
+        if (patch.reminderTime !== undefined) {
+          requestNotificationPermissionsAsync().then((granted) => {
+            if (granted) rescheduleAllNotifications(state.tasks, newProfile);
+          });
+        }
+        return { profile: newProfile };
+      }),
       addNotice: (rawText, sourceType) => {
         const notice: Notice = {
           id: id("notice"),
@@ -246,6 +257,148 @@ export const useDeadlineStore = create<DeadlineState>()(
               : notice,
           ),
         })),
+      addNoticeFromFile: (uri, mimeType, filename) => {
+        const noticeId = id("notice");
+        const notice: Notice = {
+          id: noticeId,
+          title: `Extracting from ${filename}...`,
+          rawText: "Processing file with AI...",
+          sourceType: "Shared File",
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ notices: [notice, ...state.notices] }));
+
+        (async () => {
+          try {
+            const FileSystem = require("expo-file-system");
+            const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
+            const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+            if (!apiKey) throw new Error("Gemini API key is missing");
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const prompt = `Extract deadline information from this document. Respond strictly with a JSON object matching this TypeScript type:
+{
+  "title": "string",
+  "mainDeadline": "string (ISO date)",
+  "priority": "low" | "medium" | "high",
+  "documents": ["required document strings"],
+  "instructions": ["specific instruction strings"],
+  "unclear": ["anything unclear strings"],
+  "rawText": "a brief plain text summary of the notice"
+}`;
+            const result = await model.generateContent([
+              prompt,
+              { inlineData: { data: base64, mimeType } }
+            ]);
+            let responseText = result.response.text();
+            responseText = responseText.replace(/^```json/m, "").replace(/```$/m, "").trim();
+            const parsed = JSON.parse(responseText);
+
+            const analysis: Analysis = {
+              title: parsed.title || "Shared Document",
+              source: filename,
+              mainDeadline: parsed.mainDeadline || new Date().toISOString(),
+              priority: parsed.priority || "medium",
+              confidence: 0.9,
+              documents: parsed.documents || [],
+              instructions: parsed.instructions || [],
+              unclear: parsed.unclear || []
+            };
+
+            set((state) => ({
+              analyses: { ...state.analyses, [notice.id]: analysis },
+              notices: state.notices.map((n) =>
+                n.id === notice.id
+                  ? { ...n, title: analysis.title, rawText: parsed.rawText || "Extracted via AI", status: "analyzed" }
+                  : n
+              ),
+            }));
+          } catch (error) {
+            console.error("Gemini Extraction Error:", error);
+            set((state) => ({
+              notices: state.notices.map((n) =>
+                n.id === notice.id
+                  ? { ...n, title: "Extraction Failed", rawText: "Could not process file.", status: "analyzed" }
+                  : n
+              ),
+            }));
+          }
+        })();
+        return noticeId;
+      },
+      addNoticeFromTextAsync: (rawText, sourceType) => {
+        const noticeId = id("notice");
+        const notice: Notice = {
+          id: noticeId,
+          title: "Extracting from text...",
+          rawText: "Processing text with AI...",
+          sourceType,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ notices: [notice, ...state.notices] }));
+
+        (async () => {
+          try {
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
+            const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+            if (!apiKey) throw new Error("Gemini API key is missing");
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const prompt = `Extract deadline information from this text. Respond strictly with a JSON object matching this TypeScript type:
+{
+  "title": "string",
+  "mainDeadline": "string (ISO date)",
+  "priority": "low" | "medium" | "high",
+  "documents": ["required document strings"],
+  "instructions": ["specific instruction strings"],
+  "unclear": ["anything unclear strings"],
+  "rawText": "a brief plain text summary of the notice"
+}
+
+Text to analyze:
+${rawText}`;
+            const result = await model.generateContent([prompt]);
+            let responseText = result.response.text();
+            responseText = responseText.replace(/^```json/m, "").replace(/```$/m, "").trim();
+            const parsed = JSON.parse(responseText);
+
+            const analysis: Analysis = {
+              title: parsed.title || "Pasted Notice",
+              source: sourceType,
+              mainDeadline: parsed.mainDeadline || new Date().toISOString(),
+              priority: parsed.priority || "medium",
+              confidence: 0.9,
+              documents: parsed.documents || [],
+              instructions: parsed.instructions || [],
+              unclear: parsed.unclear || []
+            };
+
+            set((state) => ({
+              analyses: { ...state.analyses, [notice.id]: analysis },
+              notices: state.notices.map((n) =>
+                n.id === notice.id
+                  ? { ...n, title: analysis.title, rawText: parsed.rawText || "Extracted via AI", status: "analyzed" }
+                  : n
+              ),
+            }));
+          } catch (error) {
+            console.error("Gemini Extraction Error:", error);
+            set((state) => ({
+              notices: state.notices.map((n) =>
+                n.id === notice.id
+                  ? { ...n, title: "Extraction Failed", rawText: "Could not process text.", status: "analyzed" }
+                  : n
+              ),
+            }));
+          }
+        })();
+        return noticeId;
+      },
       generatePlan: (noticeId) => {
         const analysis = get().analyses[noticeId];
         if (!analysis) return null;
@@ -259,13 +412,18 @@ export const useDeadlineStore = create<DeadlineState>()(
           progress: 0,
           status: "active",
         };
-        set((state) => ({
+        const newTasks = createTasks(analysis, deadlineId);
+        const newState = {
           deadlines: [deadline, ...state.deadlines],
-          tasks: [...createTasks(analysis, deadlineId), ...state.tasks],
+          tasks: [...newTasks, ...state.tasks],
           notices: state.notices.map((notice) =>
             notice.id === noticeId ? { ...notice, status: "planned" } : notice,
           ),
-        }));
+        };
+        requestNotificationPermissionsAsync().then((granted) => {
+          if (granted) rescheduleAllNotifications(newState.tasks, state.profile);
+        });
+        set(newState);
         return deadlineId;
       },
       updateTask: (taskId, patch) =>
@@ -287,6 +445,7 @@ export const useDeadlineStore = create<DeadlineState>()(
                 return { ...deadline, progress, status: progress === 100 ? "complete" : "active" };
               })
             : state.deadlines;
+          rescheduleAllNotifications(tasks, state.profile);
           return { tasks, deadlines };
         }),
       seedDemo: () => {

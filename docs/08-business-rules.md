@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Business Rules
 
 See also [[03-feature-map]], [[10-known-issues]], and [[14-open-questions]].

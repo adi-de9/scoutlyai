@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Current Progress
 
 ## Completed
@@ -13,17 +18,22 @@
 - Removed unused browser-only Framer Motion source files. The active mobile app uses React Native components and `react-native-reanimated` only where its CSS wrappers require it.
 - Supabase email/password authentication, device-protected session persistence, sign-out, and Expo Router protected routes are implemented for the `event` project.
 - Added Google OAuth sign-in flow using the system browser and the existing `anapp://auth/callback` deep link.
+- Integrate `expo-share-intent` to receive files (PDFs, images) from other apps.
+- Implement Gemini AI integration (`gemini-1.5-flash`) for extracting deadline information from shared documents.
+- Mapped the project documentation as an Obsidian Second Brain, adding a central Map of Content (Home.md) and YAML frontmatter to existing files.
+- Implemented native device pickers (`expo-image-picker`, `expo-document-picker`) for Photo, Screenshot, and PDF upload sources.
+- Integrated real Gemini AI analysis for pasted text input.
+- Implemented local push notifications (`expo-notifications`) for task reminders based on user's selected reminder time.
 
 ## Partially Completed
 
-- The visual source choices (Photo, PDF, Screenshot, Voice, Email) currently analyze pasted text or the supplied sample notice; device importing is not connected.
 - The reference uses web animations and desktop navigation. Mobile uses native touch feedback, static mascot artwork, and bottom navigation instead.
 - Full TypeScript verification is slow in this environment and timed out without reporting Expo-source errors; Android bundling is the successful code-integrity check.
 - Rebuilding the Android debug binary to link AsyncStorage exceeded the local five-minute build window.
 
 ## Not Started
 
-- Production remote data model, document/media import, notification scheduling, analytics, error tracking, and automated tests.
+- Production remote data model, analytics, error tracking, and automated tests.
 
 ## Needs Verification
 

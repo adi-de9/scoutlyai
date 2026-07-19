@@ -1,18 +1,10 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Known Issues
 
-## Device Input Is Not Connected
-
-- Severity: Medium.
-- Related files: `src/features/deadlineos/screens.tsx`.
-- Description: Photo, PDF, Screenshot, Voice, and Email options reproduce the reference design, but the offline demo currently analyzes entered text or the supplied sample notice.
-- Suggested fix: Add the appropriate Expo pickers/capture APIs and a real extraction service once product requirements are decided.
-
-## Demo Analysis Is Deterministic
-
-- Severity: Medium.
-- Related files: `src/features/deadlineos/store.ts`.
-- Description: Notice analysis and blocker recovery use local keyword rules, not an AI or document-processing service.
-- Suggested fix: Replace the demo functions with an authenticated backend integration when a production API is available.
 
 ## Real Device Verification Pending
 
@@ -53,6 +45,8 @@
 - Related files: `src/features/auth/`, `src/app/_layout.tsx`.
 - Description: The Supabase project is active and the code protects routes, but sign-up, confirmation-email behavior, sign-in, session restoration, and sign-out have not yet been tapped through on a device.
 - Suggested fix: Test those flows in an Android development build and confirm the desired email-confirmation setting in the Supabase dashboard.
+- **Expo Share Intent**: Handling shared files natively requires a clean native build (`npx expo prebuild --clean` or `npm run android`). If it throws intent filter errors, ensure there are no duplicate AndroidManifest blocks.
+- **Gemini API Key**: A valid `EXPO_PUBLIC_GEMINI_API_KEY` environment variable must be set in `.env` for the extraction to work.
 
 ## Google Provider Dashboard Setup Pending
 

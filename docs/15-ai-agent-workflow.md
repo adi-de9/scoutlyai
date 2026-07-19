@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # AI Agent Workflow
 
 See also [[00-project-overview]], [[09-current-progress]], and [[10-known-issues]].

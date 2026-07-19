@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Dependency Map
 
 See also [[01-architecture]], [[02-folder-map]], and [[11-important-files]].

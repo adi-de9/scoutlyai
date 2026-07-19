@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Decisions
 
 See also [[01-architecture]] and [[14-open-questions]].
@@ -241,3 +246,42 @@ Users can choose Google from the sign-in screen. The Supabase Dashboard must ena
 - `src/features/auth/google.ts`
 - `src/features/auth/AuthScreen.tsx`
 - `app.json`
+
+## Integrate Share Intent and Gemini for Data Extraction
+
+### Decision
+
+Enable Android share intent support and integrate Gemini for AI-driven data extraction.
+
+### Reason
+
+To allow users to import documents (images/PDFs) directly from other Android apps into the DeadlineOS flow, automatically extracting deadline information using generative AI.
+
+### Impact
+
+The app can receive shared files, convert them to base64, and process them via `gemini-1.5-flash` to populate deadlines.
+
+### Related Files
+
+- `src/features/share/`
+- `src/features/ai/gemini.ts`
+- `app.json`
+
+## Map Project as Obsidian Second Brain
+
+### Decision
+
+Map the project documentation as an Obsidian Second Brain by keeping files flat, adding YAML frontmatter, creating a central Map of Content (Home.md), and initializing an `.obsidian` vault.
+
+### Reason
+
+To leverage Obsidian for second brain knowledge management (tags, bi-directional linking, MOC) while preventing hardcoded documentation links in `AGENTS.md` and `CLAUDE.md` from breaking if files were moved to subfolders.
+
+### Impact
+
+The repository root is now an Obsidian vault, and documentation contains metadata and a structural entry point.
+
+### Related Files
+
+- `docs/Home.md`
+- `docs/*.md`

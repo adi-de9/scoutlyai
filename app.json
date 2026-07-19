@@ -8,7 +8,8 @@
     "scheme": "anapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.adityaakffa.anapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +35,26 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": [
+            "*/*",
+            "image/*",
+            "application/pdf"
+          ],
+          "androidMultiIntentFilters": [
+            "*/*",
+            "image/*",
+            "application/pdf"
+          ],
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsFileWithMaxCount": 10,
+            "NSExtensionActivationSupportsImageWithMaxCount": 10
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

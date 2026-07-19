@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Project Overview
 
 See also [[01-architecture]], [[03-feature-map]], and [[09-current-progress]].

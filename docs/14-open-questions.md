@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Open Questions
 
 See also [[00-project-overview]], [[09-current-progress]], and [[10-known-issues]].

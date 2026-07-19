@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Feature Map
 
 See also [[04-screen-flow]], [[05-data-flow]], and [[09-current-progress]].

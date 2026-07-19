@@ -1,5 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import { format, addDays, startOfMonth, startOfWeek, addMonths, subMonths } from "date-fns";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -517,13 +519,77 @@ export function HomeScreen() {
 
 export function AddScreen() {
   const router = useRouter();
-  const addNotice = useDeadlineStore((s) => s.addNotice);
+  const addNoticeFromTextAsync = useDeadlineStore((s) => s.addNoticeFromTextAsync);
+  const addNoticeFromFile = useDeadlineStore((s) => s.addNoticeFromFile);
   const [source, setSource] = useState("Pasted text");
   const [text, setText] = useState("");
   const submit = () => {
-    const notice = addNotice(text || SAMPLE_NOTICE_TEXT, source);
-    router.push(`/analysis/${notice.id}`);
+    const noticeId = addNoticeFromTextAsync(text || SAMPLE_NOTICE_TEXT, source);
+    router.push(`/analysis/${noticeId}`);
   };
+
+  const handleSourcePress = async (label: string) => {
+    if (label === "Voice" || label === "Email") {
+      Alert.alert("Coming soon", "Voice/Email importing is not yet supported.");
+      return;
+    }
+    setSource(label);
+    if (label === "Pasted text") return;
+
+    try {
+      let resultUri = "";
+      let resultMime = "";
+      let resultName = "";
+
+      if (label === "Photo") {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission required", "Camera permission is needed.");
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          resultUri = result.assets[0].uri;
+          resultMime = result.assets[0].mimeType || "image/jpeg";
+          resultName = result.assets[0].fileName || "photo.jpg";
+        } else {
+          return;
+        }
+      } else if (label === "Screenshot") {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          resultUri = result.assets[0].uri;
+          resultMime = result.assets[0].mimeType || "image/png";
+          resultName = result.assets[0].fileName || "screenshot.png";
+        } else {
+          return;
+        }
+      } else if (label === "PDF") {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: "application/pdf",
+        });
+        if (!result.canceled && result.assets && result.assets[0]) {
+          resultUri = result.assets[0].uri;
+          resultMime = result.assets[0].mimeType || "application/pdf";
+          resultName = result.assets[0].name;
+        } else {
+          return;
+        }
+      }
+
+      if (resultUri) {
+        const noticeId = addNoticeFromFile(resultUri, resultMime, resultName);
+        router.push(`/analysis/${noticeId}`);
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Could not pick file");
+    }
+  };
+
   return (
     <AppShell>
       <Header title="Add a notice" subtitle="Any notice becomes a clear plan." />
@@ -541,7 +607,7 @@ export function AddScreen() {
         ].map(([icon, label]) => (
           <Pressable
             key={label}
-            onPress={() => setSource(label)}
+            onPress={() => handleSourcePress(label)}
             style={[
               styles.choice,
               source === label && styles.choiceOn,
@@ -582,25 +648,15 @@ export function AnalysisScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const notice = useDeadlineStore((s) => s.notices.find((n) => n.id === id));
   const analysis = useDeadlineStore((s) => s.analyses[id]);
-  const setAnalysis = useDeadlineStore((s) => s.setAnalysis);
   const generatePlan = useDeadlineStore((s) => s.generatePlan);
   const [stage, setStage] = useState(0);
   useEffect(() => {
     if (analysis || !notice) return;
-    const timer = setInterval(
-      () =>
-        setStage((s) => {
-          if (s >= 5) {
-            clearInterval(timer);
-            setAnalysis(notice.id, analyzeNotice(notice.rawText, notice.sourceType));
-            return s;
-          }
-          return s + 1;
-        }),
-      550,
-    );
+    const timer = setInterval(() => {
+      setStage((s) => (s < 5 ? s + 1 : s));
+    }, 550);
     return () => clearInterval(timer);
-  }, [analysis, notice, setAnalysis]);
+  }, [analysis, notice]);
   if (!notice)
     return (
       <AppShell>

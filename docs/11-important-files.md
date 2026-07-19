@@ -1,3 +1,8 @@
+---
+tags:
+  - secondbrain
+  - documentation
+---
 # Important Files
 
 See also [[02-folder-map]] and [[15-ai-agent-workflow]].
