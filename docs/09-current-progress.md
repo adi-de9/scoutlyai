@@ -49,6 +49,7 @@
 - Disabled Android app backups in both Expo configuration and the existing native manifest.
 - Applied `202607190002_harden_live_analysis.sql` to `ldsewokysfbqshhjsied` and redeployed `enqueue-analysis`, `process-analysis`, and `blocker-assistant` on 19 July 2026.
 - Verified the hardening source with Prettier and `git diff --check`, completed a successful Android JavaScript export, and completed `:app:assembleDebug`. Gradle confirmed `expo-crypto 57.0.1` is linked in the debug APK.
+- Replaced the default Expo README with a concise hackathon project overview covering the Deadline OS problem, feature set, privacy model, stack, setup, and demo flow.
 
 ## Partially Completed
 
