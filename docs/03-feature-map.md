@@ -74,6 +74,16 @@ See also [[04-screen-flow]], [[05-data-flow]], and [[09-current-progress]].
 - Missing parts: Password reset, account deletion, and remote deadline-data sync.
 - Possible risks: Google OAuth requires the provider and `anapp://auth/callback` redirect URL to be configured again in the dedicated DeadlineOS Supabase project.
 
+## Account Profile And Sign Out
+
+- Status: Complete in code; device verification pending.
+- User purpose: Lets a signed-in user review their account email and saved onboarding preferences from the Home header, then sign out safely.
+- Related screens: `src/app/home.tsx`, `src/app/profile.tsx`.
+- Related components: `Header`, accessible profile button, `ProfileScreen`; no developer demo-data action is shown to users.
+- Related services: Supabase Auth session and sign-out.
+- Related files: `src/features/deadlineos/screens.tsx`, `src/features/auth/AuthProvider.tsx`.
+- Possible risks: The profile icon needs one Android touch test on both empty and populated Home states.
+
 ## Database / Persistence
 
 - Status: Not Started.

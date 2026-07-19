@@ -24,6 +24,12 @@ export type Notice = {
   createdAt: string;
   liveJobId?: string;
 };
+export type IntakeDraft = {
+  sourceType: string;
+  rawText: string;
+  selectedFileName?: string;
+  updatedAt: string;
+};
 export type Analysis = {
   title: string;
   source: string;
@@ -276,7 +282,10 @@ type DeadlineState = {
   tasks: Task[];
   reminders: Reminder[];
   activity: ActivityEvent[];
+  intakeDraft: IntakeDraft | null;
   setProfile: (profile: Partial<Profile>) => void;
+  setIntakeDraft: (draft: Omit<IntakeDraft, "updatedAt">) => void;
+  clearIntakeDraft: () => void;
   addNotice: (
     rawText: string,
     sourceType: string,
@@ -295,7 +304,14 @@ type DeadlineState = {
 
 type PersistedDeadlineData = Pick<
   DeadlineState,
-  "profile" | "notices" | "analyses" | "deadlines" | "tasks" | "reminders" | "activity"
+  | "profile"
+  | "notices"
+  | "analyses"
+  | "deadlines"
+  | "tasks"
+  | "reminders"
+  | "activity"
+  | "intakeDraft"
 >;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -343,6 +359,17 @@ function normalizeProfile(value: unknown): Profile {
   };
 }
 
+function normalizeIntakeDraft(value: unknown): IntakeDraft | null {
+  const draft = asRecord<unknown>(value);
+  if (typeof draft.sourceType !== "string" || typeof draft.rawText !== "string") return null;
+  return {
+    sourceType: draft.sourceType,
+    rawText: draft.rawText,
+    selectedFileName: typeof draft.selectedFileName === "string" ? draft.selectedFileName : undefined,
+    updatedAt: typeof draft.updatedAt === "string" ? draft.updatedAt : new Date().toISOString(),
+  };
+}
+
 // Persisted data survives app upgrades. Normalize older or partially written state before
 // any screen can read it, so a failed write from a previous build cannot crash the demo flow.
 function normalizePersistedState(value: unknown): PersistedDeadlineData {
@@ -355,6 +382,7 @@ function normalizePersistedState(value: unknown): PersistedDeadlineData {
     tasks: asArray<Task>(state.tasks),
     reminders: asArray<Reminder>(state.reminders),
     activity: asArray<ActivityEvent>(state.activity),
+    intakeDraft: normalizeIntakeDraft(state.intakeDraft),
   };
 }
 
@@ -369,7 +397,11 @@ export const useDeadlineStore = create<DeadlineState>()(
       tasks: [],
       reminders: [],
       activity: [],
+      intakeDraft: null,
       setProfile: (patch) => set((state) => ({ profile: { ...state.profile, ...patch } })),
+      setIntakeDraft: (draft) =>
+        set({ intakeDraft: { ...draft, updatedAt: new Date().toISOString() } }),
+      clearIntakeDraft: () => set({ intakeDraft: null }),
       addNotice: (rawText, sourceType, options) => {
         const notice: Notice = {
           id: options?.id || id("notice"),
@@ -559,6 +591,7 @@ export const useDeadlineStore = create<DeadlineState>()(
           tasks: createTasks(analysis, deadlineId, "balanced"),
           reminders: [],
           activity: [],
+          intakeDraft: null,
         });
       },
       reset: () =>
@@ -570,12 +603,13 @@ export const useDeadlineStore = create<DeadlineState>()(
           tasks: [],
           reminders: [],
           activity: [],
+          intakeDraft: null,
         }),
     }),
     {
       name: "deadlineos-demo",
       storage: createJSONStorage(resolveStorage),
-      version: 1,
+      version: 2,
       migrate: (persistedState) => normalizePersistedState(persistedState),
       merge: (persistedState, currentState) => ({
         ...currentState,

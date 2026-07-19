@@ -226,15 +226,15 @@ This gives DeadlineOS its own trusted identity service instead of sharing the `e
 
 ### Decision
 
-Use Supabase Google OAuth in the system browser and return to the app using the existing `anapp://auth/callback` deep link.
+Use Supabase Google OAuth in the system browser and return to the app using the existing `anapp://auth/callback` deep link with PKCE enabled in the mobile client.
 
 ### Reason
 
-The required Expo Linking and WebBrowser packages and the native app scheme already exist. This avoids adding another native Google sign-in dependency while preserving the same secure Supabase session and protected routes.
+The required Expo Linking and WebBrowser packages and the native app scheme already exist. PKCE returns an exchangeable query code instead of fragment-only tokens that Android deep-link routing can omit. This avoids adding another native Google sign-in dependency while preserving the same secure Supabase session and protected routes.
 
 ### Impact
 
-Users can choose Google from the sign-in screen. The Supabase Dashboard must enable the Google provider and permit the redirect URL before the live flow can complete.
+Users can choose Google from the sign-in screen. The callback exchanges the PKCE code through the SecureStore-backed Supabase client, while legacy implicit pairs remain supported as a fallback. The Supabase Dashboard must enable the Google provider and permit the redirect URL before the live flow can complete.
 
 ### Related Files
 

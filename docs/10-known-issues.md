@@ -95,14 +95,14 @@
 - Severity: Medium.
 - Related files: `src/features/auth/`, `src/app/_layout.tsx`.
 - Description: The dedicated DeadlineOS project is active and intentionally starts with zero users. Confirm Email is now disabled for the hackathon flow, so first email sign-up should create a device session immediately instead of sending a confirmation link. The code also ignores stale callback links once that session exists, but this needs a device tap-through.
-- Suggested fix: In an Android development build, verify Landing > Get Started opens sign-in, create a new DeadlineOS account and confirm it opens onboarding without email confirmation, then test ordinary sign-in, session restoration, sign-out, Google cancellation, a valid Google callback, and a signed-out expired callback link.
+- Suggested fix: In an Android development build, verify Landing > Get Started opens sign-in, create a new DeadlineOS account and confirm it opens onboarding without email confirmation, then test the Home Profile button in empty and populated states, displayed account email and onboarding preferences, sign-out, ordinary sign-in, session restoration, Google cancellation, a Google callback delivered once and twice, and a signed-out expired callback link.
 
 ## Google Provider Dashboard Setup Pending
 
 - Severity: Medium.
 - Related files: `src/features/auth/google.ts`, `app.json`.
-- Description: The app-side Google OAuth flow requests `anapp://auth/callback`, but the remote project still falls back to `localhost:3000`. This confirms a Supabase Auth URL configuration issue, not a mobile-route failure.
-- Suggested fix: In the DeadlineOS Supabase Dashboard, configure Authentication > Providers > Google with the Google Cloud OAuth credentials; under URL Configuration add exact redirect `anapp://auth/callback` and ensure the confirmation-email template uses `{{ .ConfirmationURL }}`. Keep Google Cloud's authorized callback at `https://ldsewokysfbqshhjsied.supabase.co/auth/v1/callback`.
+- Description: Supabase Auth logs show the Google provider reaches the project callback and records a successful Google login. The app now accepts implicit fragment sessions as well as PKCE codes, but a rebuilt Android test must confirm the session reaches the app and opens onboarding or Home.
+- Suggested fix: Keep the Google Cloud authorized callback at `https://ldsewokysfbqshhjsied.supabase.co/auth/v1/callback`, keep exact mobile redirect `anapp://auth/callback` in Supabase Auth URL Configuration, then test a new and an existing Google account, cancellation, duplicate delivery, and sign-out/re-sign-in on a rebuilt Android app.
 
 ## Updated Android Share And Tab Verification Pending
 
@@ -117,3 +117,10 @@
 - Related files: `src/features/deadlineos/screens.tsx`, `src/features/deadlineos/ui.tsx`.
 - Description: The Add notice information-density pass is code-reviewed, but needs a device-size check to confirm the shorter source/input layout feels balanced with the keyboard open.
 - Suggested fix: On a narrow Android device, switch among text, PDF, and screenshot; test empty input, selected file, Change, Remove, keyboard-open scrolling, and the primary action visibility.
+
+## Intake Draft Recovery Verification Pending
+
+- Severity: Low.
+- Related files: `src/features/deadlineos/store.ts`, `src/features/deadlineos/screens.tsx`.
+- Description: Typed notice drafts now persist locally and extraction automatically opens an editable draft. This needs a rebuilt-device test to confirm text survives navigation and an app restart, while a selected local PDF/image correctly asks the user to choose the source again after a restart.
+- Suggested fix: Enter text, leave Add notice, restart the app, return to Add notice, and confirm the text remains. Then extract it, verify the original notice and editable extracted draft are both visible, edit the title/documents, create a plan, and confirm the original text remains on the analysis screen.

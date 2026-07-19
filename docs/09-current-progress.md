@@ -35,8 +35,13 @@
 - Reworked notice intake around a selected-source card and added a quick editable extraction review before plan creation.
 - Completed a mobile information-density pass on Add notice: source choices have equal hit areas, the redundant mascot/selected-source copy is removed, and text/file input states now have one clear primary action.
 - Replaced Add notice's direct offline-demo shortcut with a Fill sample text helper in the Pasted text source only, so test content stays visible and editable before extraction. Removed the developer-only Restart onboarding control from Profile.
+- Added persisted intake drafts for typed notices. Extraction now automatically opens an editable extracted draft and keeps the original notice visible beside the extracted details before plan creation.
 - Verified the Google OAuth localhost redirect is not caused by the app: the client requests `anapp://auth/callback`; Supabase dashboard URL configuration remains the required external fix.
 - Hardened the public auth callback: when Supabase Confirm Email is disabled, immediate email sign-up sessions now bypass stale or empty callback links and continue to onboarding or Home. Signed-out users still receive an understandable expired-link error.
+- Hardened Google OAuth against Android's duplicate callback delivery: an already-consumed one-time code now succeeds when the device session exists, and the browser sign-in screen navigates directly to onboarding or Home.
+- Fixed Google OAuth on Android: the SecureStore-backed mobile client now uses PKCE, so Google returns an exchangeable code rather than a fragment Android may drop. The callback also accepts legacy implicit token pairs and deduplicates simultaneous browser/router handling.
+- Added an accessible Profile button to every Home header state. Profile now shows the signed-in email and keeps the existing Sign out action.
+- Replaced Profile's developer-only Load demo data control with readable saved onboarding details: work types, challenges, working style, planning style, and reminder preferences.
 
 ## Partially Completed
 

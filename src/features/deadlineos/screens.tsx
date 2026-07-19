@@ -648,6 +648,23 @@ export function HomeScreen() {
         <Header
           title={`Good ${new Date().getHours() < 12 ? "morning" : "afternoon"}, ${profile.fullName || "there"}.`}
           subtitle="Add your first notice to get started."
+          action={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+              accessibilityHint="View your account details and sign out"
+              hitSlop={8}
+              onPress={() => router.push("/profile")}
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 44,
+                minWidth: 44,
+              }}
+            >
+              <Feather name="user" color={C.indigo} size={21} />
+            </Pressable>
+          }
         />
         <Card style={{ alignItems: "center", paddingVertical: 30 }}>
           <Dew size={145} />
@@ -668,7 +685,14 @@ export function HomeScreen() {
         title={`Good ${new Date().getHours() < 12 ? "morning" : "afternoon"}, ${profile.fullName || "there"}.`}
         subtitle="Here is what needs your attention today."
         action={
-          <Pressable onPress={() => router.push("/profile")}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            accessibilityHint="View your account details and sign out"
+            hitSlop={8}
+            onPress={() => router.push("/profile")}
+            style={{ alignItems: "center", justifyContent: "center", minHeight: 44, minWidth: 44 }}
+          >
             <Feather name="user" color={C.indigo} size={21} />
           </Pressable>
         }
@@ -742,19 +766,29 @@ export function HomeScreen() {
 export function AddScreen() {
   const router = useRouter();
   const addNotice = useDeadlineStore((s) => s.addNotice);
-  const [source, setSource] = useState("Pasted text");
-  const [text, setText] = useState("");
+  const intakeDraft = useDeadlineStore((s) => s.intakeDraft);
+  const setIntakeDraft = useDeadlineStore((s) => s.setIntakeDraft);
+  const clearIntakeDraft = useDeadlineStore((s) => s.clearIntakeDraft);
+  const [source, setSource] = useState(() => intakeDraft?.sourceType || "Pasted text");
+  const [text, setText] = useState(() => intakeDraft?.rawText || "");
   const [file, setFile] = useState<NoticeFileSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const saveDraft = (nextSource: string, nextText: string, selectedFileName?: string) => {
+    setIntakeDraft({ sourceType: nextSource, rawText: nextText, selectedFileName });
+  };
   const choose = async (next: string) => {
     setSource(next);
     setFile(null);
+    saveDraft(next, text);
     setError(null);
     if (next === "Pasted text") return;
     try {
       const selected = next === "PDF" ? await pickNoticePdf() : await pickNoticeScreenshot();
-      if (selected) setFile(selected);
+      if (selected) {
+        setFile(selected);
+        saveDraft(next, text, selected.name);
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not choose that file.");
     }
@@ -763,6 +797,7 @@ export function AddScreen() {
     setSource("Pasted text");
     setFile(null);
     setText(SAMPLE_NOTICE_TEXT);
+    saveDraft("Pasted text", SAMPLE_NOTICE_TEXT);
     setError(null);
   };
   const submit = async () => {
@@ -778,6 +813,7 @@ export function AddScreen() {
         file: source === "Pasted text" ? undefined : file || undefined,
       });
       addNotice(result.notice.rawText, result.notice.sourceType, result.notice);
+      clearIntakeDraft();
       router.push(`/analysis/${result.notice.id}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not start live analysis.");
@@ -829,7 +865,10 @@ export function AddScreen() {
             <TextInput
               multiline
               value={text}
-              onChangeText={setText}
+              onChangeText={(value) => {
+                setText(value);
+                saveDraft(source, value);
+              }}
               placeholder="Paste the notice here. Include the deadline, documents needed, and where to submit."
               placeholderTextColor={C.sub}
               style={[styles.input, { height: 155, marginTop: 14, textAlignVertical: "top" }]}
@@ -871,7 +910,10 @@ export function AddScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Remove selected file"
-                  onPress={() => setFile(null)}
+                  onPress={() => {
+                    setFile(null);
+                    saveDraft(source, text);
+                  }}
                   style={[
                     styles.choice,
                     { alignItems: "center", paddingHorizontal: 16, paddingVertical: 11 },
@@ -881,9 +923,19 @@ export function AddScreen() {
                 </Pressable>
               )}
             </View>
+            {!file && intakeDraft?.sourceType === source && intakeDraft.selectedFileName && (
+              <Text style={[styles.small, { marginTop: 10 }]}>
+                Draft remembers “{intakeDraft.selectedFileName}”. Choose the file again to continue.
+              </Text>
+            )}
           </>
         )}
         {error && <Text style={[styles.body, { color: C.coral, marginTop: 12 }]}>{error}</Text>}
+        {intakeDraft && (
+          <Text style={[styles.small, { color: C.mint, marginTop: 12 }]}>
+            Draft saved on this device.
+          </Text>
+        )}
         <View style={[styles.row, { gap: 7, marginTop: 15 }]}>
           <Feather name="shield" color={C.mint} size={15} />
           <Text style={styles.small}>Live analysis is private. Demo Mode never uploads.</Text>
@@ -928,6 +980,8 @@ export function AnalysisScreen() {
   const [draftDocuments, setDraftDocuments] = useState<string[]>([]);
   const [newDocument, setNewDocument] = useState("");
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewOpened, setReviewOpened] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(true);
   useEffect(() => {
     if (!planDeadlineId || selectedReminders.length) return;
     const taskIds = tasks
@@ -984,6 +1038,16 @@ export function AnalysisScreen() {
     );
     return () => clearInterval(timer);
   }, [analysis, notice, setAnalysis]);
+  useEffect(() => {
+    if (!analysis || reviewOpened || planDeadlineId) return;
+    setDraftTitle(analysis.title);
+    setDraftDeadline(format(new Date(analysis.mainDeadline), "yyyy-MM-dd"));
+    setDraftDocuments(analysis.documents);
+    setNewDocument("");
+    setReviewError(null);
+    setIsReviewing(true);
+    setReviewOpened(true);
+  }, [analysis, planDeadlineId, reviewOpened]);
   const startReview = () => {
     if (!analysis) return;
     setDraftTitle(analysis.title);
@@ -1169,13 +1233,36 @@ export function AnalysisScreen() {
           </Text>
         ))}
       </Card>
+      <Card style={{ marginTop: 12, backgroundColor: C.muted }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showOriginal }}
+          onPress={() => setShowOriginal((visible) => !visible)}
+          style={styles.row}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.h2}>Original notice</Text>
+            <Text style={[styles.small, { marginTop: 3 }]}>
+              Your source is kept with this draft.
+            </Text>
+          </View>
+          <Feather name={showOriginal ? "chevron-up" : "chevron-down"} color={C.sub} size={20} />
+        </Pressable>
+        {showOriginal && (
+          <Text selectable style={[styles.body, { marginTop: 12 }]}>
+            {notice.rawText.trim()
+              ? notice.rawText
+              : `${notice.title} was uploaded as a ${notice.sourceType}. Its original file remains in private storage; the extracted details above are shown here for review.`}
+          </Text>
+        )}
+      </Card>
       {!planDeadlineId ? (
         <View style={{ marginVertical: 18 }}>
           {!isReviewing ? (
-            <GradientButton title="Review extraction" icon="edit-3" onPress={startReview} />
+            <GradientButton title="Edit extracted draft" icon="edit-3" onPress={startReview} />
           ) : (
             <Card style={{ backgroundColor: "#EEF0FF" }}>
-              <Text style={styles.h2}>Quick review</Text>
+              <Text style={styles.h2}>Extracted draft</Text>
               <Text style={[styles.small, { marginTop: 4 }]}>
                 Correct anything before Deadline OS creates your plan.
               </Text>
@@ -1801,8 +1888,8 @@ export function InsightsScreen() {
 }
 
 export function ProfileScreen() {
-  const { profile, seedDemo } = useDeadlineStore();
-  const { signOut } = useAuth();
+  const { profile } = useDeadlineStore();
+  const { session, signOut } = useAuth();
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   return (
     <AppShell>
@@ -1810,28 +1897,37 @@ export function ProfileScreen() {
       <Card style={{ alignItems: "center" }}>
         <Dew size={125} />
         <Text style={[styles.h2, { marginTop: 4 }]}>{profile.fullName || "DeadlineOS user"}</Text>
+        <Text style={[styles.eyebrow, { marginTop: 9 }]}>ACCOUNT</Text>
+        <Text style={[styles.small, { marginTop: 3 }]}>
+          {session?.user.email ?? "Signed-in user"}
+        </Text>
         <Text style={styles.small}>Demo mode · data stays on this device</Text>
       </Card>
       <Card style={{ marginTop: 13 }}>
-        <Text style={styles.h2}>Planning style</Text>
-        <Text style={[styles.body, { marginTop: 4, textTransform: "capitalize" }]}>
-          {profile.planningStyle.replace("_", " ")}
+        <Text style={styles.h2}>Your details</Text>
+        <Text style={[styles.eyebrow, { marginTop: 15 }]}>YOU MANAGE</Text>
+        <Text style={[styles.body, { marginTop: 4 }]}>
+          {profile.manages.length ? profile.manages.join(" · ") : "Not set yet"}
         </Text>
-        <Text style={[styles.h2, { marginTop: 18 }]}>Reminder preference</Text>
+        <Text style={[styles.eyebrow, { marginTop: 16 }]}>COMMON CHALLENGES</Text>
+        <Text style={[styles.body, { marginTop: 4 }]}>
+          {profile.problems.length ? profile.problems.join(" · ") : "Not set yet"}
+        </Text>
+        <Text style={[styles.eyebrow, { marginTop: 16 }]}>WORKING STYLE</Text>
+        <Text style={[styles.body, { marginTop: 4 }]}>
+          {profile.workingStyle.length ? profile.workingStyle.join(" · ") : "Not set yet"}
+        </Text>
+        <Text style={[styles.eyebrow, { marginTop: 16 }]}>PLANNING STYLE</Text>
+        <Text style={[styles.body, { marginTop: 4, textTransform: "capitalize" }]}>
+          {preferenceLabel(profile.planningStyle, planningOptions)}
+        </Text>
+        <Text style={[styles.eyebrow, { marginTop: 16 }]}>REMINDER PREFERENCE</Text>
         <Text style={[styles.body, { marginTop: 4 }]}>
           {preferenceLabel(profile.reminderTime, reminderTimeOptions)} ·{" "}
           {preferenceLabel(profile.reminderIntensity, reminderIntensityOptions)}
         </Text>
       </Card>
       <View style={{ marginTop: 15, gap: 9 }}>
-        <GradientButton
-          title="Load demo data"
-          icon="play"
-          onPress={() => {
-            seedDemo();
-            router.replace("/home");
-          }}
-        />
         <OutlineButton
           title="Sign out"
           icon="log-out"

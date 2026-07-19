@@ -23,6 +23,7 @@ export const supabase = supabaseUrl && supabasePublishableKey
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
+        flowType: "pkce",
       },
     })
   : null;
