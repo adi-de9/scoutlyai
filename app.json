@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "anapp",
+    "name": "Deadline OS",
     "slug": "anapp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,12 +8,11 @@
     "scheme": "anapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.adityaakffa.anapp"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0068EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,28 +29,34 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0068EC",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 96
         }
       ],
       "expo-secure-store",
       [
-        "expo-share-intent",
+        "expo-image-picker",
         {
-          "androidIntentFilters": [
-            "*/*",
-            "image/*",
-            "application/pdf"
-          ],
-          "androidMultiIntentFilters": [
-            "*/*",
-            "image/*",
-            "application/pdf"
-          ],
-          "iosActivationRules": {
-            "NSExtensionActivationSupportsFileWithMaxCount": 10,
-            "NSExtensionActivationSupportsImageWithMaxCount": 10
+          "photosPermission": "Allow DeadlineOS to choose a notice screenshot.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-document-picker",
+      "expo-notifications",
+      [
+        "expo-sharing",
+        {
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf",
+              "text/plain"
+            ]
           }
         }
       ]

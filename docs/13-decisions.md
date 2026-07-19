@@ -209,15 +209,15 @@ The mobile dependency boundary is clearer and an accidental future import of the
 
 ### Decision
 
-Use Supabase Auth for email/password accounts, Expo SecureStore for device session storage, and Expo Router `Stack.Protected` for route access control.
+Use the dedicated DeadlineOS Supabase project for email/password accounts, Expo SecureStore for device session storage, and Expo Router `Stack.Protected` for route access control.
 
 ### Reason
 
-This gives the mobile app one trusted identity service, keeps session tokens out of ordinary app storage, and prevents signed-out users from navigating to DeadlineOS screens.
+This gives DeadlineOS its own trusted identity service instead of sharing the `event` project, keeps session tokens out of ordinary app storage, and prevents signed-out users from navigating to DeadlineOS screens.
 
 ### Impact
 
-`/` and `/sign-in` are available while signed out. All DeadlineOS routes require a valid session and signing out returns the user to a public route. Existing demo deadlines remain local and are not yet linked to a Supabase database.
+`/` and `/sign-in` are available while signed out. All DeadlineOS routes require a valid session from the DeadlineOS project and signing out returns the user to a public route. Existing demo deadlines remain local and are not yet linked to a Supabase database. Existing users in the old shared `event` project are deliberately not copied.
 
 ### Related Files
 
@@ -285,3 +285,101 @@ The repository root is now an Obsidian vault, and documentation contains metadat
 
 - `docs/Home.md`
 - `docs/*.md`
+
+## Use Supplied DeadlineOS Fox Artwork For App Branding
+
+### Decision
+
+Use the supplied `deadlineos.png` fox artwork for the launcher icon, Android adaptive and themed icons, Android splash image, and web favicon. Keep `src/assets/dew-base.png` as the separate in-app Dew mascot.
+
+### Reason
+
+The user selected the fox artwork as the application identity but explicitly kept Dew for the app's on-screen experience.
+
+### Impact
+
+Expo source assets and the current Android density resources now use the fox artwork, so a debug APK receives the new branding without regenerating the native Android project. The app's routes, authentication, state, and in-app mascot artwork are unchanged. The direct Android resource files remain subject to the repository's existing `android/` Git-ignore policy.
+
+### Related Files
+
+- `app.json`
+- `assets/images/`
+- `android/app/src/main/res/mipmap-*`
+- `android/app/src/main/res/drawable-*`
+- `src/assets/dew-base.png`
+
+## Use Snake Case For Future DeadlineOS Database Identifiers
+
+### Decision
+
+Use `snake_case` for every future DeadlineOS application table, column, foreign-key column, index, constraint, SQL migration name, and database function.
+
+### Reason
+
+The user selected one consistent database naming style before the application schema is created. It keeps SQL names easy to read and avoids having to mix styles later.
+
+### Impact
+
+Examples include `deadline_items`, `user_id`, `created_at`, and `deadline_items_user_id_idx`. No application table exists yet, so this decision does not rename or migrate any data.
+
+### Related Files
+
+- Future `supabase/migrations/` files
+- Future database types and repositories
+
+## Use Gemini Server-Side With Explicit Demo Mode
+
+### Decision
+
+Use Gemini `gemini-2.5-flash-lite` for normal structured extraction and retry once with `gemini-2.5-flash`; keep the local deterministic analyzer as a clearly selected Demo Mode.
+
+### Reason
+
+Gemini supports the required text, screenshot, and PDF inputs from one private server-side integration, while Demo Mode makes the hackathon flow reliable without network or a key.
+
+### Impact
+
+The Gemini key belongs only in Supabase Edge Function secrets. User originals use private Storage and analysis jobs persist queue progress instead of a fake timer.
+
+## Receive Android PDF And Screenshot Shares Through Expo Sharing
+
+### Decision
+
+Use Expo SDK 57 `expo-sharing` with narrow Android `ACTION_SEND` MIME filters. Redirect an incoming one-file share to a confirmation route before calling the existing private upload service.
+
+### Reason
+
+It lets users send a notice directly from Files, Gallery, email, or chat apps without adding broad storage access or a second extraction path.
+
+### Impact
+
+The app appears in Android's Share sheet for text, PDF, JPG, PNG, and WebP. The app accepts one reviewed item at a time; text is analyzed directly while files are validated and privately uploaded. Unsupported, oversized, or cancelled shares do not upload. A signed-out user is sent to sign-in and returned to the pending shared item afterward.
+
+## Keep Deadline OS Technical Identifiers Stable
+
+### Decision
+
+Show the app as `Deadline OS` while retaining package `com.adityaakffa.anapp`, Expo slug `anapp`, and scheme `anapp`.
+
+### Reason
+
+The visible product name should be clear without breaking installed-app identity, the existing Android deep link, Supabase redirects, or local data.
+
+### Impact
+
+Only the launcher/display name changes. Existing Android installs and `anapp://auth/callback` remain compatible.
+
+## Use Android-Only `anapp://auth/callback` For Auth Completion
+
+### Decision
+
+Use one Android deep link for Google OAuth and email confirmation, with a public Expo Router callback route.
+
+### Reason
+
+It prevents Supabase from falling back to a browser localhost URL and lets the mobile app create the protected local session itself.
+
+### Impact
+
+Supabase must allow the exact URL and its email template must preserve `{{ .ConfirmationURL }}`. This decision is Android-only; iOS universal links are out of scope.
+

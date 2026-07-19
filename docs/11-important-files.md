@@ -40,7 +40,7 @@ See also [[02-folder-map]] and [[15-ai-agent-workflow]].
 - `src/features/auth/AuthScreen.tsx`: Email/password sign-in and sign-up UI.
 - `src/features/auth/google.ts`: Google browser OAuth launch and Supabase authorization-code exchange.
 - `src/app/_layout.tsx`: Router guards for signed-in and signed-out routes.
-- `.env.local`: Local Supabase URL and publishable key; ignored by Git.
+- `.env.local`: Local DeadlineOS Supabase URL and publishable key; ignored by Git.
 
 ## Notifications
 
@@ -62,7 +62,9 @@ See also [[02-folder-map]] and [[15-ai-agent-workflow]].
 
 ## Configuration
 
-- `app.json`: Expo app config for icons, splash screen, scheme, Android package, web output, and experiments.
+- `app.json`: Expo app config for the DeadlineOS fox launcher/adaptive icons, splash screen, favicon, scheme, Android package, web output, and experiments.
+- `assets/images/icon.png`, `assets/images/android-icon-*.png`, `assets/images/splash-icon.png`, `assets/images/favicon.png`: Source fox branding assets. `src/assets/dew-base.png` remains the separate in-app mascot asset.
+- `android/app/src/main/res/mipmap-*` and `android/app/src/main/res/drawable-*`: Android launcher and splash assets used by the current APK. The whole `android/` folder is currently ignored by Git.
 - `tsconfig.json`: TypeScript strict mode and path aliases.
 - `metro.config.js`: Enables NativeWind with `react-native-css`.
 - `postcss.config.mjs`: Enables `@tailwindcss/postcss`.

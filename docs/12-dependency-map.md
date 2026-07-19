@@ -19,7 +19,8 @@ See also [[01-architecture]], [[02-folder-map]], and [[11-important-files]].
 | `src/features/auth/*`      | `@supabase/supabase-js`, `expo-secure-store`, `expo-linking`, `expo-web-browser` | Authentication, Google OAuth, session storage, and route access |
 | `metro.config.js`          | `nativewind/metro`                                          | NativeWind Metro transform setup            |
 | `postcss.config.mjs`       | `@tailwindcss/postcss`                                      | Tailwind v4 CSS processing                  |
-| `app.json`                 | assets under `assets/`                                      | Icons and splash assets                     |
+| `app.json`                 | DeadlineOS fox assets under `assets/images/`                | Launcher, adaptive icon, splash, and favicon |
+| `android/app/src/main/res/` | generated fox PNG launcher and splash density assets        | Current workspace Android branding used by the APK |
 | `android/settings.gradle`  | Expo autolinking and React Native Gradle plugin             | Native module linking                       |
 | `android/app/build.gradle` | React Native, Hermes/JSC, Android Gradle                    | Android build                               |
 | `MainActivity.kt`          | Expo splash screen, React Native activity                   | Android startup                             |
@@ -57,6 +58,7 @@ flowchart TD
     AppJson[app.json] --> Assets[assets]
     AppJson --> AndroidManifest[android app manifest]
     AppJson --> Splash[expo-splash-screen config]
+    Assets --> AndroidBranding[Android launcher and splash resources]
 
     AndroidSettings[android/settings.gradle] --> ExpoAutolinking[Expo autolinking]
     AndroidSettings --> RNGradle[React Native Gradle plugin]

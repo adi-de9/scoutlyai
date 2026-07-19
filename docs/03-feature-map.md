@@ -55,17 +55,29 @@ See also [[04-screen-flow]], [[05-data-flow]], and [[09-current-progress]].
 - Missing parts: Real web UX and web-specific verification.
 - Possible risks: Web behavior is not tested in this task.
 
+## App Branding Assets
+
+- Status: Complete in Expo source assets and the current Android debug resources; device appearance verification is pending.
+- User purpose: Shows the supplied DeadlineOS fox artwork on the launcher, Android splash screen, and browser favicon.
+- Related screens: None. These assets appear before the application UI loads.
+- Related components: Expo app configuration and Android launcher/splash resources.
+- Related services: None.
+- Related database collections or tables: None.
+- Related files: `app.json`, `assets/images/`, `android/app/src/main/res/mipmap-*`, `android/app/src/main/res/drawable-*`.
+- Missing parts: Device/emulator visual verification on launcher masks and Android 12+ splash startup.
+- Possible risks: A device launcher can apply a round or squircle mask differently from a desktop image viewer.
+
 ## Authentication
 
 - Status: Complete for email/password and Google OAuth authentication.
 - User purpose: Keeps DeadlineOS routes available only to signed-in users.
 - Related screens: `src/app/sign-in.tsx`.
 - Related components: `src/features/auth/AuthScreen.tsx`, `src/features/auth/AuthProvider.tsx`.
-- Related services: Supabase Auth.
+- Related services: Supabase Auth in the dedicated DeadlineOS project.
 - Related database collections or tables: Supabase managed `auth.users` only; no application table is added.
 - Related files: `src/app/_layout.tsx`, `src/features/auth/`, `.env.local`.
 - Missing parts: Password reset, account deletion, and remote deadline-data sync.
-- Possible risks: Google OAuth requires the provider and `anapp://auth/callback` redirect URL to be configured in Supabase.
+- Possible risks: Google OAuth requires the provider and `anapp://auth/callback` redirect URL to be configured again in the dedicated DeadlineOS Supabase project.
 
 ## Database / Persistence
 
@@ -76,7 +88,7 @@ See also [[04-screen-flow]], [[05-data-flow]], and [[09-current-progress]].
 - Related services: None found.
 - Related database collections or tables: None found.
 - Related files: None found.
-- Missing parts: Database choice, schema, migrations, validation, security rules.
+- Missing parts: Database schema, migrations, validation, and security rules. Supabase is selected for authentication; future application tables must use snake_case identifiers.
 - Possible risks: Data model decisions are still open.
 
 ## Notifications / Background Tasks / Widgets
