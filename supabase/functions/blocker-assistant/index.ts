@@ -22,6 +22,17 @@ Deno.serve(async (request) => {
     const { task_title, blocker } = await request.json();
     if (typeof task_title !== "string" || typeof blocker !== "string" || !blocker.trim())
       return json({ error: "Task and blocker are required" }, 400);
+    if (task_title.length > 200 || blocker.length > 2_000)
+      return json({ error: "Task title or blocker explanation is too long" }, 400);
+    const { data: allowed, error: quotaError } = await client.rpc("consume_ai_quota", {
+      p_user_id: auth.user.id,
+      p_request_kind: "blocker",
+      p_max_requests: 15,
+      p_window_seconds: 600,
+    });
+    if (quotaError) throw quotaError;
+    if (!allowed)
+      return json({ error: "Assistant limit reached. Try again in a few minutes." }, 429);
     const key = Deno.env.get("GEMINI_API_KEY");
     if (!key) return json({ error: "Live assistant is not configured" }, 503);
     const response = await fetch(

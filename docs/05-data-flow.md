@@ -35,14 +35,15 @@ sequenceDiagram
 ## Storage
 
 - Storage: AsyncStorage.
-- Key: `deadlineos-demo`.
+- Key: `deadlineos-user-<Supabase user id>`. The signed-out state uses a separate empty key.
 - Entities: profile, notices, analyses, deadlines, and tasks.
-- No remote DeadlineOS database or real notification scheduling is implemented yet.
+- The old shared `deadlineos-demo` key is cleared during the first signed-in migration because its owner is unknown.
+- Signing out clears the visible local notebook and cancels its scheduled local reminders, so a later account on the same phone cannot see or receive the prior account's data.
 - Intake drafts preserve pasted text and selected-file metadata locally until successful extraction. The original text remains on the saved notice; a PDF or screenshot itself remains private in Supabase Storage after live upload.
 
 ## Live Notice Analysis (Hackathon Path)
 
-Live text, PDF, and screenshot uploads are stored privately under the signed-in user's ID, then a persisted `analysis_jobs` record moves through queued, reading, extracting, planning, and awaiting approval. Gemini returns a validated extraction. The app polls this saved job while open; an error offers Retry and an explicitly selected Demo Mode sample, never a silent substitution.
+Live text, PDF, and screenshot uploads are stored privately under the signed-in user's ID, then a persisted `analysis_jobs` record moves through queued, reading, extracting, planning, and awaiting approval. Gemini returns a validated extraction. The app polls this saved job while open and resumes up to three queued jobs when a signed-in app session returns. An error offers Retry and an explicitly selected Demo Mode sample, never a silent substitution. Text is limited to 50,000 characters and files to 10 MB before Gemini is called.
 
 ## Android Shared Notices
 

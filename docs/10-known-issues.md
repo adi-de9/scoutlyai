@@ -14,13 +14,6 @@
 - Description: The new Expo native modules need an Android rebuild and device test for picker cancel/reject flows, notification permission, reminder delivery, Done cancellation, Later rescheduling, and notification navigation.
 - Suggested fix: Also test Android Files, Gallery, WhatsApp, and Gmail sharing one PDF/image into DeadlineOS, including signing in after sharing. Verify unsupported types and files above 10 MB are rejected without upload.
 
-## Local Android Rebuild Exceeds Available Tool Window
-
-- Severity: Medium. Android source remains unchanged by the local-state repair.
-- Related files: `android/`, Gradle build configuration.
-- Description: The existing debug rebuild had already exceeded five minutes. A 19 July 2026 `assembleRelease` QA attempt also timed out after six minutes without producing a new APK, so a rebuilt bundle could not be installed on the emulator.
-- Suggested fix: Run `npm run android` or `android\\gradlew.bat assembleRelease` from a local terminal with a longer build window, then install the resulting APK and repeat the interactive checks.
-
 ## Device Input Is Not Connected
 
 - Severity: Medium.
@@ -75,6 +68,20 @@
 - Severity: High.
 - Related files: `android/app/build.gradle`.
 - Description: Release builds use the debug signing configuration and are not ready for Play Store distribution.
+
+## Production Release Signing Still Needs A User-Owned Key
+
+- Severity: High.
+- Related files: `android/app/build.gradle`, Play Console or EAS credentials.
+- Description: The code hardening does not create or store a production signing key. A real Play Store release must use a user-owned upload key or managed EAS/Play signing, not the existing debug configuration.
+- Suggested fix: Create or select the owner-controlled release credential outside source control, update the release build configuration, and verify the signed artifact before publishing.
+
+## Hardening Deployment And Device Verification Pending
+
+- Severity: Medium.
+- Related files: `supabase/migrations/202607190002_harden_live_analysis.sql`, `supabase/functions/`, `src/features/auth/crypto.ts`, `android/app/src/main/AndroidManifest.xml`.
+- Description: The Supabase migration and all three hardened Edge Functions are deployed. The Android debug APK also compiles with Expo Crypto linked. A real account/device interaction is still needed to verify normal/oversized/rate-limited analysis, account switch/logout, queued-job resume, Google OAuth warning removal, and backup-disabled behavior.
+- Suggested fix: Install the current debug APK, then perform the listed flows on a device or emulator and inspect Supabase Function logs for the live-analysis request.
 
 ## Native Android Resources Are Ignored By Git
 

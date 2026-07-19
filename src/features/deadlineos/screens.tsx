@@ -12,7 +12,7 @@ import {
   subMonths,
 } from "date-fns";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, {
   Circle,
@@ -55,6 +55,7 @@ import {
   getLiveBlockerRecovery,
   readLiveAnalysis,
   readLiveJob,
+  resumeLiveAnalysis,
   retryLiveAnalysis,
   startLiveAnalysis,
 } from "./services/live-analysis";
@@ -982,6 +983,7 @@ export function AnalysisScreen() {
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewOpened, setReviewOpened] = useState(false);
   const [showOriginal, setShowOriginal] = useState(true);
+  const resumedJobIds = useRef(new Set<string>());
   useEffect(() => {
     if (!planDeadlineId || selectedReminders.length) return;
     const taskIds = tasks
@@ -997,6 +999,12 @@ export function AnalysisScreen() {
     if (analysis || !notice) return;
     if (notice.liveJobId) {
       let active = true;
+      if (!resumedJobIds.current.has(notice.liveJobId)) {
+        resumedJobIds.current.add(notice.liveJobId);
+        void resumeLiveAnalysis(notice.liveJobId).catch(() => {
+          // Polling below exposes a persisted server error when the call reaches it.
+        });
+      }
       const refresh = async () => {
         try {
           const job = await readLiveJob(notice.liveJobId!);

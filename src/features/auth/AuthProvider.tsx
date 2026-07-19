@@ -1,5 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import * as Notifications from "expo-notifications";
+import { switchDeadlineStoreUser } from "../deadlineos/store";
 import { supabase, supabaseConfigurationError } from "./supabase";
 
 type AuthContextValue = {
@@ -31,6 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    void switchDeadlineStoreUser(session?.user.id);
+  }, [session?.user.id]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -38,6 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       configurationError: supabaseConfigurationError,
       signOut: async () => {
         if (!supabase) return supabaseConfigurationError;
+        await Promise.allSettled([
+          Notifications.cancelAllScheduledNotificationsAsync(),
+          switchDeadlineStoreUser(),
+        ]);
         const { error } = await supabase.auth.signOut();
         return error?.message ?? null;
       },

@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react";
 import { View } from "react-native";
 import { AuthProvider, useAuth } from "../features/auth/AuthProvider";
+import { resumePendingLiveAnalysis } from "../features/deadlineos/services/live-analysis";
 
 import "../global.css";
 
@@ -45,6 +46,9 @@ function RootNavigator() {
       // expo-sharing is unavailable on unsupported platforms such as web.
     }
   }, [router, session]);
+  useEffect(() => {
+    if (session) void resumePendingLiveAnalysis();
+  }, [session]);
   if (isLoading) return <View style={{ flex: 1 }} />;
   return (
     <Stack screenOptions={{ headerShown: false, animation: "fade" }}>

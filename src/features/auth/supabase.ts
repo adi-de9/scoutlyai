@@ -1,5 +1,6 @@
 import { AppState } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import "./crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -16,17 +17,18 @@ const secureStorage = {
   removeItem: (key: string) => SecureStore.deleteItemAsync(key),
 };
 
-export const supabase = supabaseUrl && supabasePublishableKey
-  ? createClient(supabaseUrl, supabasePublishableKey, {
-      auth: {
-        storage: secureStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
-        flowType: "pkce",
-      },
-    })
-  : null;
+export const supabase =
+  supabaseUrl && supabasePublishableKey
+    ? createClient(supabaseUrl, supabasePublishableKey, {
+        auth: {
+          storage: secureStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+          flowType: "pkce",
+        },
+      })
+    : null;
 
 if (supabase) {
   AppState.addEventListener("change", (state) => {

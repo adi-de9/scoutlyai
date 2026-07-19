@@ -107,6 +107,11 @@ const memoryStorage: StateStorage = {
   removeItem: (name) => memoryValues.delete(name),
 };
 
+const legacyStoreKey = "deadlineos-demo";
+const storeKeyForUser = (userId?: string | null) =>
+  userId ? `deadlineos-user-${userId}` : "deadlineos-signed-out";
+let activeStoreKey = storeKeyForUser();
+
 function resolveStorage(): StateStorage {
   try {
     const asyncStorage = require("@react-native-async-storage/async-storage").default;
@@ -365,7 +370,8 @@ function normalizeIntakeDraft(value: unknown): IntakeDraft | null {
   return {
     sourceType: draft.sourceType,
     rawText: draft.rawText,
-    selectedFileName: typeof draft.selectedFileName === "string" ? draft.selectedFileName : undefined,
+    selectedFileName:
+      typeof draft.selectedFileName === "string" ? draft.selectedFileName : undefined,
     updatedAt: typeof draft.updatedAt === "string" ? draft.updatedAt : new Date().toISOString(),
   };
 }
@@ -607,7 +613,8 @@ export const useDeadlineStore = create<DeadlineState>()(
         }),
     }),
     {
-      name: "deadlineos-demo",
+      // Never share task data between accounts that use the same phone.
+      name: activeStoreKey,
       storage: createJSONStorage(resolveStorage),
       version: 2,
       migrate: (persistedState) => normalizePersistedState(persistedState),
@@ -619,6 +626,37 @@ export const useDeadlineStore = create<DeadlineState>()(
     },
   ),
 );
+
+/**
+ * Changes the local DeadlineOS notebook to the current authenticated user.
+ * The previous global demo key is deliberately removed: it cannot be assigned
+ * to an account safely, and keeping it would expose its contents after sign-in.
+ */
+export async function switchDeadlineStoreUser(userId?: string | null) {
+  const nextStoreKey = storeKeyForUser(userId);
+  if (nextStoreKey === activeStoreKey) return;
+
+  activeStoreKey = nextStoreKey;
+  useDeadlineStore.persist.setOptions({ name: nextStoreKey });
+  useDeadlineStore.setState({
+    hydrated: false,
+    profile: blankProfile,
+    notices: [],
+    analyses: {},
+    deadlines: [],
+    tasks: [],
+    reminders: [],
+    activity: [],
+    intakeDraft: null,
+  });
+  try {
+    const storage = resolveStorage();
+    if (userId) await storage.removeItem(legacyStoreKey);
+  } catch {
+    // Storage cleanup must not block sign-in; the new scoped key remains safe.
+  }
+  await useDeadlineStore.persist.rehydrate();
+}
 
 export const daysLeft = (date: string) =>
   Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
