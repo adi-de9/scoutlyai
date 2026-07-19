@@ -226,15 +226,15 @@ This gives DeadlineOS its own trusted identity service instead of sharing the `e
 
 ### Decision
 
-Use Supabase Google OAuth in the system browser and return to the app using the existing `anapp://auth/callback` deep link.
+Use Supabase Google OAuth in the system browser and return to the app using the existing `anapp://auth/callback` deep link with PKCE enabled in the mobile client.
 
 ### Reason
 
-The required Expo Linking and WebBrowser packages and the native app scheme already exist. This avoids adding another native Google sign-in dependency while preserving the same secure Supabase session and protected routes.
+The required Expo Linking and WebBrowser packages and the native app scheme already exist. PKCE returns an exchangeable query code instead of fragment-only tokens that Android deep-link routing can omit. This avoids adding another native Google sign-in dependency while preserving the same secure Supabase session and protected routes.
 
 ### Impact
 
-Users can choose Google from the sign-in screen. The Supabase Dashboard must enable the Google provider and permit the redirect URL before the live flow can complete.
+Users can choose Google from the sign-in screen. The callback exchanges the PKCE code through the SecureStore-backed Supabase client, while legacy implicit pairs remain supported as a fallback. The Supabase Dashboard must enable the Google provider and permit the redirect URL before the live flow can complete.
 
 ### Related Files
 
@@ -338,3 +338,36 @@ It prevents Supabase from falling back to a browser localhost URL and lets the m
 ### Impact
 
 Supabase must allow the exact URL and its email template must preserve `{{ .ConfirmationURL }}`. This decision is Android-only; iOS universal links are out of scope.
+
+## Scope Local DeadlineOS Data To The Signed-In User
+
+### Decision
+
+Persist DeadlineOS data under one AsyncStorage key per Supabase user and clear the old global local key.
+
+### Reason
+
+A shared device must never show one account's notices, profile, or scheduled reminders to the next account. The historical global key has no trustworthy owner.
+
+### Impact
+
+Users start with an empty local notebook after this privacy migration unless they create data while signed in. Sign-out clears the active state and cancels its local reminder notifications. Server-side data remains owner-protected by existing RLS.
+
+### Related Files
+
+- `src/features/deadlineos/store.ts`
+- `src/features/auth/AuthProvider.tsx`
+
+## Bound Live AI Requests Server-Side
+
+### Decision
+
+Validate source size and apply per-user fixed-window quotas in Supabase Edge Functions before Gemini calls.
+
+### Reason
+
+Client-side validation can be bypassed. Server-side limits prevent an authenticated modified client from creating unbounded Gemini cost.
+
+### Impact
+
+Text is capped at 50,000 characters, files at 10 MB, analysis at six requests per ten minutes, and blocker recovery at fifteen requests per ten minutes. A temporary rate-limit response can be retried after the window resets.

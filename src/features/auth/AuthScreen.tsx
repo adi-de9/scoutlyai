@@ -60,7 +60,11 @@ export function AuthScreen() {
     setMessage(null);
     const error = await signInWithGoogle();
     setIsGoogleSubmitting(false);
-    if (error) showError(error);
+    if (error) {
+      showError(error);
+      return;
+    }
+    router.replace(onboardingComplete ? "/home" : "/onboarding");
   };
 
   const resendConfirmation = async () => {

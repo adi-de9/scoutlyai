@@ -8,7 +8,7 @@ Supabase Auth is called through `@supabase/supabase-js` for email/password and G
 
 ## Internal Services
 
-No internal service modules are present.
+`live-analysis.ts` creates and resumes persisted analysis jobs, validates pasted-text limits, and removes a private upload if notice creation or queueing fails. `reminders.ts` schedules and cancels local reminders. Edge Functions validate ownership, source limits, concurrent jobs, and AI quotas before calling Gemini.
 
 ## SDKs
 
@@ -21,6 +21,7 @@ No internal service modules are present.
 | Expo Splash Screen | Splash screen config                    | `app.json`, native generated files    | Android native layer            |
 | Supabase JS        | Email/password auth and session refresh | `.env.local`                          | `src/features/auth/`            |
 | Expo SecureStore   | Device-protected auth-session storage   | `app.json` plugin                     | `src/features/auth/supabase.ts` |
+| Expo Crypto        | Native SHA-256 for Supabase PKCE        | Expo SDK 57 dependency                | `src/features/auth/crypto.ts`   |
 
 ## Authentication Providers
 
@@ -52,6 +53,6 @@ The app requires `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABL
 
 ## Hackathon Services Prepared
 
-`src/features/deadlineos/services/notice-source.ts` validates/selects PDF and screenshots; `live-analysis.ts` handles private upload, queue polling/retry, and Edge calls; `reminders.ts` handles local scheduling/cancellation. Supabase functions `enqueue-analysis`, `process-analysis`, and `blocker-assistant` keep Gemini server-side. `GEMINI_API_KEY` is an Edge Function secret only and must never be an Expo public variable.
+`src/features/deadlineos/services/notice-source.ts` validates/selects PDF and screenshots; `live-analysis.ts` handles private upload, queue polling/retry, recovery, and Edge calls; `reminders.ts` handles local scheduling/cancellation. Supabase functions `enqueue-analysis`, `process-analysis`, and `blocker-assistant` keep Gemini server-side. `GEMINI_API_KEY` is an Edge Function secret only and must never be an Expo public variable. The process function allows six analysis calls per user per ten minutes; blocker assistance allows fifteen per ten minutes.
 
 `expo-sharing` is configured as an Android receiver for one `text/plain`, `image/jpeg`, `image/png`, `image/webp`, or `application/pdf` item. The native intent is redirected to `/share`, where text or the existing private upload service is reused.

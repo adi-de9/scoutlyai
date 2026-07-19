@@ -24,6 +24,12 @@ export type Notice = {
   createdAt: string;
   liveJobId?: string;
 };
+export type IntakeDraft = {
+  sourceType: string;
+  rawText: string;
+  selectedFileName?: string;
+  updatedAt: string;
+};
 export type Analysis = {
   title: string;
   source: string;
@@ -100,6 +106,11 @@ const memoryStorage: StateStorage = {
   setItem: (name, value) => memoryValues.set(name, value),
   removeItem: (name) => memoryValues.delete(name),
 };
+
+const legacyStoreKey = "deadlineos-demo";
+const storeKeyForUser = (userId?: string | null) =>
+  userId ? `deadlineos-user-${userId}` : "deadlineos-signed-out";
+let activeStoreKey = storeKeyForUser();
 
 function resolveStorage(): StateStorage {
   try {
@@ -276,7 +287,10 @@ type DeadlineState = {
   tasks: Task[];
   reminders: Reminder[];
   activity: ActivityEvent[];
+  intakeDraft: IntakeDraft | null;
   setProfile: (profile: Partial<Profile>) => void;
+  setIntakeDraft: (draft: Omit<IntakeDraft, "updatedAt">) => void;
+  clearIntakeDraft: () => void;
   addNotice: (
     rawText: string,
     sourceType: string,
@@ -295,7 +309,14 @@ type DeadlineState = {
 
 type PersistedDeadlineData = Pick<
   DeadlineState,
-  "profile" | "notices" | "analyses" | "deadlines" | "tasks" | "reminders" | "activity"
+  | "profile"
+  | "notices"
+  | "analyses"
+  | "deadlines"
+  | "tasks"
+  | "reminders"
+  | "activity"
+  | "intakeDraft"
 >;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -343,6 +364,18 @@ function normalizeProfile(value: unknown): Profile {
   };
 }
 
+function normalizeIntakeDraft(value: unknown): IntakeDraft | null {
+  const draft = asRecord<unknown>(value);
+  if (typeof draft.sourceType !== "string" || typeof draft.rawText !== "string") return null;
+  return {
+    sourceType: draft.sourceType,
+    rawText: draft.rawText,
+    selectedFileName:
+      typeof draft.selectedFileName === "string" ? draft.selectedFileName : undefined,
+    updatedAt: typeof draft.updatedAt === "string" ? draft.updatedAt : new Date().toISOString(),
+  };
+}
+
 // Persisted data survives app upgrades. Normalize older or partially written state before
 // any screen can read it, so a failed write from a previous build cannot crash the demo flow.
 function normalizePersistedState(value: unknown): PersistedDeadlineData {
@@ -355,6 +388,7 @@ function normalizePersistedState(value: unknown): PersistedDeadlineData {
     tasks: asArray<Task>(state.tasks),
     reminders: asArray<Reminder>(state.reminders),
     activity: asArray<ActivityEvent>(state.activity),
+    intakeDraft: normalizeIntakeDraft(state.intakeDraft),
   };
 }
 
@@ -369,7 +403,11 @@ export const useDeadlineStore = create<DeadlineState>()(
       tasks: [],
       reminders: [],
       activity: [],
+      intakeDraft: null,
       setProfile: (patch) => set((state) => ({ profile: { ...state.profile, ...patch } })),
+      setIntakeDraft: (draft) =>
+        set({ intakeDraft: { ...draft, updatedAt: new Date().toISOString() } }),
+      clearIntakeDraft: () => set({ intakeDraft: null }),
       addNotice: (rawText, sourceType, options) => {
         const notice: Notice = {
           id: options?.id || id("notice"),
@@ -559,6 +597,7 @@ export const useDeadlineStore = create<DeadlineState>()(
           tasks: createTasks(analysis, deadlineId, "balanced"),
           reminders: [],
           activity: [],
+          intakeDraft: null,
         });
       },
       reset: () =>
@@ -570,12 +609,14 @@ export const useDeadlineStore = create<DeadlineState>()(
           tasks: [],
           reminders: [],
           activity: [],
+          intakeDraft: null,
         }),
     }),
     {
-      name: "deadlineos-demo",
+      // Never share task data between accounts that use the same phone.
+      name: activeStoreKey,
       storage: createJSONStorage(resolveStorage),
-      version: 1,
+      version: 2,
       migrate: (persistedState) => normalizePersistedState(persistedState),
       merge: (persistedState, currentState) => ({
         ...currentState,
@@ -585,6 +626,37 @@ export const useDeadlineStore = create<DeadlineState>()(
     },
   ),
 );
+
+/**
+ * Changes the local DeadlineOS notebook to the current authenticated user.
+ * The previous global demo key is deliberately removed: it cannot be assigned
+ * to an account safely, and keeping it would expose its contents after sign-in.
+ */
+export async function switchDeadlineStoreUser(userId?: string | null) {
+  const nextStoreKey = storeKeyForUser(userId);
+  if (nextStoreKey === activeStoreKey) return;
+
+  activeStoreKey = nextStoreKey;
+  useDeadlineStore.persist.setOptions({ name: nextStoreKey });
+  useDeadlineStore.setState({
+    hydrated: false,
+    profile: blankProfile,
+    notices: [],
+    analyses: {},
+    deadlines: [],
+    tasks: [],
+    reminders: [],
+    activity: [],
+    intakeDraft: null,
+  });
+  try {
+    const storage = resolveStorage();
+    if (userId) await storage.removeItem(legacyStoreKey);
+  } catch {
+    // Storage cleanup must not block sign-in; the new scoped key remains safe.
+  }
+  await useDeadlineStore.persist.rehydrate();
+}
 
 export const daysLeft = (date: string) =>
   Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);

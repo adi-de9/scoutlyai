@@ -16,7 +16,7 @@
 | `/tasks`         | All tasks with status filters                                   |
 | `/calendar`      | Deadline month view                                             |
 | `/insights`      | Progress overview                                               |
-| `/profile`       | Demo data and preference controls                               |
+| `/profile`       | Account email, saved onboarding preferences, and sign out       |
 
 ## Main Flow
 
@@ -35,6 +35,6 @@ flowchart TD
   Deadline --> Tasks[Tasks]
   Home --> Calendar[Calendar]
   Home --> Insights[Insights]
-  Home --> Profile[Profile]
+  Home --> Profile[Profile, account details, and sign out]
   Profile --> SignIn
 ```

@@ -4,6 +4,9 @@ import { extractWithGemini } from "../_shared/gemini.ts";
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message.slice(0, 500) : "Analysis failed";
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_TEXT_CHARS = 50_000;
+const ALLOWED_FILE_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -39,13 +42,33 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (!claimed)
       return json({ accepted: true, message: "Job is already being processed or completed" }, 202);
+    const { data: allowed, error: quotaError } = await client.rpc("consume_ai_quota", {
+      p_user_id: auth.user.id,
+      p_request_kind: "analysis",
+      p_max_requests: 6,
+      p_window_seconds: 600,
+    });
+    if (quotaError) throw quotaError;
+    if (!allowed) throw new Error("Analysis limit reached. Try again in a few minutes.");
     const { data: notice, error: noticeError } = await client
       .from("notices")
-      .select("id, user_id, source_type, source_mime_type, source_path, raw_text")
+      .select("id, user_id, source_type, source_mime_type, source_path, source_size, raw_text")
       .eq("id", claimed.notice_id)
       .eq("user_id", auth.user.id)
       .single();
     if (noticeError || !notice) throw new Error("Private notice source was not found");
+    if (notice.source_size < 0 || notice.source_size > MAX_FILE_BYTES)
+      throw new Error("Notice source is too large");
+    if (
+      notice.source_type === "text" &&
+      (!notice.raw_text?.trim() || notice.raw_text.length > MAX_TEXT_CHARS)
+    )
+      throw new Error("Pasted text must be between 1 and 50,000 characters");
+    if (
+      notice.source_type !== "text" &&
+      !ALLOWED_FILE_MIME_TYPES.includes(notice.source_mime_type || "")
+    )
+      throw new Error("Notice file type is not supported");
     let bytes: Uint8Array | undefined;
     if (notice.source_path) {
       const { data: file, error: fileError } = await client.storage
@@ -53,6 +76,7 @@ Deno.serve(async (request) => {
         .download(notice.source_path);
       if (fileError || !file) throw new Error("Private notice source could not be read");
       bytes = new Uint8Array(await file.arrayBuffer());
+      if (bytes.byteLength > MAX_FILE_BYTES) throw new Error("Notice source is too large");
     }
     await client
       .from("analysis_jobs")
@@ -104,16 +128,25 @@ Deno.serve(async (request) => {
     });
     return json({ status: "awaiting_approval", extraction });
   } catch (error) {
+    const rateLimited =
+      error instanceof Error && error.message.startsWith("Analysis limit reached");
     if (client && jobId)
       await client
         .from("analysis_jobs")
         .update({
           status: "failed",
-          error_code: "analysis_failed",
+          error_code: rateLimited ? "rate_limited" : "analysis_failed",
           error_message: errorMessage(error),
         })
         .eq("id", jobId);
     console.error("process-analysis failed", errorMessage(error));
-    return json({ error: "Analysis failed. Retry or use the demo sample." }, 500);
+    return json(
+      {
+        error: rateLimited
+          ? "Analysis limit reached. Try again in a few minutes."
+          : "Analysis failed. Retry or use the demo sample.",
+      },
+      rateLimited ? 429 : 500,
+    );
   }
 });

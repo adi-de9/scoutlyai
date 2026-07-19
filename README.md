@@ -1,79 +1,66 @@
-# Welcome to your Expo app 👋
+# ⏳ Deadline OS
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> Turn confusing notices into a clear action plan before the deadline passes.
 
-## Get started
+## 🎯 The problem
 
-1. Install dependencies
+Students and busy people receive deadlines in PDFs, screenshots, emails, and messages.
 
-   ```bash
-   npm install
-   ```
+- 😵 Important dates are easy to miss
+- 📄 Required documents are forgotten
+- 🗓️ Planning starts too late
 
-2. Start the app
+## ✨ The solution
 
-   ```bash
-   npx expo start
-   ```
+**Deadline OS** reads a notice, finds its deadline and required documents, then creates a simple plan with reminders and risk tracking.
 
-In the output, you'll find options to open the app in a
+## 🚀 Hackathon features
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+| Icon | Feature                                                   |
+| ---- | --------------------------------------------------------- |
+| 📸   | Upload a screenshot or PDF                                |
+| 📝   | Paste a notice or share text from another Android app     |
+| 🤖   | Gemini extracts deadlines, documents, and instructions    |
+| 🧭   | Personalized onboarding adjusts the planning style        |
+| 📅   | Smart task timeline, calendar, and deadline view          |
+| 🔔   | Review and approve reminder suggestions                   |
+| ✅   | Mark tasks **Done**, **Later**, or **Blocked**            |
+| 🛟   | Blocked assistant suggests recovery steps                 |
+| 📊   | Risk score and completion insights update as work changes |
+| 📴   | Demo Mode keeps the core demo usable offline              |
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🔒 Privacy first
 
-## Get a fresh project
+- Private notice files stay in Supabase Storage
+- Every user sees only their own data
+- Gemini API key stays on the server, never inside the app
 
-When you're ready, run:
+## 🛠️ Built with
+
+`Expo SDK 57` · `React Native` · `TypeScript` · `Supabase` · `Gemini` · `Zustand` · `Expo Notifications`
+
+## ▶️ Run locally
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+For an Android development build:
 
-### Other setup steps
+```bash
+npm run android
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## 🎬 Demo flow
 
-## Learn more
+1. 👋 Complete onboarding
+2. ➕ Add a pasted notice, screenshot, or PDF
+3. 🔎 Extract details with Gemini or choose Demo Mode
+4. ✏️ Review the deadline and documents
+5. ✅ Create the plan and approve reminders
+6. 📈 Track tasks and reduce deadline risk
 
-To learn more about developing your project with Expo, look at the following resources:
+---
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-
-Ai prompt -
-Read AGENTS.md and all documentation related to this task.
-
-Task:
-[Write the feature or bug here]
-
-Before editing:
-
-1. Explain the current flow.
-2. Identify related files.
-3. Identify possible side effects.
-4. Create a focused implementation plan.
-
-Then implement the task without changing unrelated code.
-
-After implementation:
-
-1. Test the main flow and edge cases.
-2. Update current progress.
-3. Update known issues.
-4. Update decisions if architecture changed.
-5. Explain files changed, tests performed and remaining risks.
+Built for a hackathon to make deadline management calm, clear, and actionable. 🌟

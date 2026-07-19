@@ -18,6 +18,7 @@ const makeId = () =>
     return (part === "x" ? value : (value & 0x3) | 0x8).toString(16);
   });
 const cleanName = (value: string) => value.replace(/[^a-zA-Z0-9._-]/g, "_");
+const MAX_TEXT_CHARS = 50_000;
 
 export const liveAnalysisAvailable = () => Boolean(supabase);
 
@@ -30,6 +31,8 @@ export async function startLiveAnalysis(input: {
   if (authError || !auth.user) throw new Error("Sign in before using live analysis.");
   if (!input.text?.trim() && !input.file)
     throw new Error("Paste text or choose a screenshot or PDF.");
+  if (input.text && input.text.trim().length > MAX_TEXT_CHARS)
+    throw new Error("Pasted text must be 50,000 characters or fewer.");
   const id = makeId();
   const sourceType = input.file?.kind || "text";
   let sourcePath: string | null = null;
@@ -46,39 +49,46 @@ export async function startLiveAnalysis(input: {
       throw new Error("Could not upload the private notice file. Check your connection and retry.");
     sourcePath = path;
   }
-  const { error: noticeError } = await supabase.from("notices").insert({
-    id,
-    user_id: auth.user.id,
-    title: input.file?.name || "New notice",
-    source_type: sourceType,
-    source_name: input.file?.name || "Pasted text",
-    source_mime_type: input.file?.mimeType || "text/plain",
-    source_size: input.file?.size || input.text?.length || 0,
-    source_path: sourcePath,
-    raw_text: input.text?.trim() || null,
-  });
-  if (noticeError) throw new Error("Could not save the notice. Check your connection and retry.");
-  const { data: queued, error: queueError } = await supabase.functions.invoke("enqueue-analysis", {
-    body: { notice_id: id },
-  });
-  if (queueError || !queued?.job?.id)
-    throw new Error(
-      "Could not queue analysis. Your upload is safe; retry from the analysis screen.",
-    );
-  // Start now for an immediate hackathon demo. The saved queue job still survives a close/restart.
-  void supabase.functions.invoke("process-analysis", { body: { job_id: queued.job.id } });
-  return {
-    jobId: queued.job.id,
-    notice: {
+  try {
+    const { error: noticeError } = await supabase.from("notices").insert({
       id,
+      user_id: auth.user.id,
       title: input.file?.name || "New notice",
-      rawText: input.text?.trim() || "",
-      sourceType: input.file?.kind === "pdf" ? "PDF" : input.file ? "Screenshot" : "Pasted text",
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      liveJobId: queued.job.id,
-    },
-  };
+      source_type: sourceType,
+      source_name: input.file?.name || "Pasted text",
+      source_mime_type: input.file?.mimeType || "text/plain",
+      source_size: input.file?.size || input.text?.trim().length || 0,
+      source_path: sourcePath,
+      raw_text: input.text?.trim() || null,
+    });
+    if (noticeError) throw new Error("Could not save the notice. Check your connection and retry.");
+    const { data: queued, error: queueError } = await supabase.functions.invoke(
+      "enqueue-analysis",
+      {
+        body: { notice_id: id },
+      },
+    );
+    if (queueError || !queued?.job?.id)
+      throw new Error("Could not queue analysis. Check your connection and retry.");
+    // Start now for an immediate demo; the same saved job can be resumed later.
+    void resumeLiveAnalysis(queued.job.id);
+    return {
+      jobId: queued.job.id,
+      notice: {
+        id,
+        title: input.file?.name || "New notice",
+        rawText: input.text?.trim() || "",
+        sourceType: input.file?.kind === "pdf" ? "PDF" : input.file ? "Screenshot" : "Pasted text",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        liveJobId: queued.job.id,
+      },
+    };
+  } catch (error) {
+    if (sourcePath) await supabase.storage.from("notice-source").remove([sourcePath]);
+    await supabase.from("notices").delete().eq("id", id).eq("user_id", auth.user.id);
+    throw error;
+  }
 }
 
 export async function readLiveJob(jobId: string) {
@@ -127,10 +137,27 @@ export async function retryLiveAnalysis(jobId: string) {
     .eq("id", jobId)
     .eq("status", "failed");
   if (error) throw new Error("Could not retry analysis.");
+  await resumeLiveAnalysis(jobId, 2);
+}
+
+export async function resumeLiveAnalysis(jobId: string, attempts?: number) {
+  if (!supabase) throw new Error("Live analysis is not configured on this build.");
   const response = await supabase.functions.invoke("process-analysis", {
-    body: { job_id: jobId, attempts: 2 },
+    body: { job_id: jobId, ...(attempts ? { attempts } : {}) },
   });
-  if (response.error) throw new Error("Retry could not start. Check your connection.");
+  if (response.error) throw new Error("Analysis could not start. Check your connection.");
+}
+
+export async function resumePendingLiveAnalysis() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from("analysis_jobs")
+    .select("id")
+    .eq("status", "queued")
+    .order("created_at", { ascending: true })
+    .limit(3);
+  if (error || !data?.length) return;
+  await Promise.allSettled(data.map((job) => resumeLiveAnalysis(job.id)));
 }
 
 export async function getLiveBlockerRecovery(taskTitle: string, blocker: string) {
